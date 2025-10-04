@@ -76,7 +76,7 @@ const getPieceSvg = (piece: Piece) => {
 };
 
 // Calculate legal moves for a pawn
-const calculateLegalMoves = (board: BoardState, position: string): string[] => {
+const calculateLegalMoves = (board: BoardState, position: string, lastMove: { from: string; to: string; movedTwoSquares: boolean } | null = null): string[] => {
   const piece = board[position];
   if (!piece || piece.type !== 'bonde') return [];
 
@@ -122,6 +122,27 @@ const calculateLegalMoves = (board: BoardState, position: string): string[] => {
     }
   }
 
+  // En passant
+  if (lastMove && lastMove.movedTwoSquares) {
+    const { row: lastMoveRow, col: lastMoveCol } = keyToPosition(lastMove.to);
+    const lastMovePiece = board[lastMove.to];
+
+    // Check if the pawn that just moved two squares is adjacent to this pawn
+    if (lastMovePiece && lastMovePiece.type === 'bonde' &&
+        lastMovePiece.color !== piece.color && lastMoveRow === row) {
+      // Check left adjacent
+      if (lastMoveCol === col - 1) {
+        const enPassantSquare = positionToKey(row - direction, col - 1);
+        legalMoves.push(enPassantSquare);
+      }
+      // Check right adjacent
+      if (lastMoveCol === col + 1) {
+        const enPassantSquare = positionToKey(row - direction, col + 1);
+        legalMoves.push(enPassantSquare);
+      }
+    }
+  }
+
   return legalMoves;
 };
 
@@ -144,7 +165,8 @@ export default function ChessBoardScreen() {
   const [board, setBoard] = useState<BoardState>(createInitialBoard());
   const [selectedSquare, setSelectedSquare] = useState<string | null>(null);
   const [legalMoves, setLegalMoves] = useState<string[]>([]);
-  const [currentPlayer, setCurrentPlayer] = useState<PieceColor>('black'); // Thomas starts
+  const [currentPlayer, setCurrentPlayer] = useState<PieceColor>('white'); // White (EasyBot) starts
+  const [lastMove, setLastMove] = useState<{ from: string; to: string; movedTwoSquares: boolean } | null>(null);
 
   const handleSquarePress = (row: number, col: number) => {
     const key = positionToKey(row, col);
@@ -154,7 +176,21 @@ export default function ChessBoardScreen() {
     if (selectedSquare && legalMoves.includes(key)) {
       const newBoard = { ...board };
       const movingPiece = newBoard[selectedSquare];
-      const { row: destRow } = keyToPosition(key);
+      const { row: sourceRow, col: sourceCol } = keyToPosition(selectedSquare);
+      const { row: destRow, col: destCol } = keyToPosition(key);
+
+      // Check if this is a two-square pawn move
+      const movedTwoSquares = movingPiece.type === 'bonde' && Math.abs(destRow - sourceRow) === 2;
+
+      // Check for en passant capture
+      let isEnPassant = false;
+      if (movingPiece.type === 'bonde' && Math.abs(destCol - sourceCol) === 1 && !board[key]) {
+        // Moving diagonally to an empty square means en passant
+        isEnPassant = true;
+        // Remove the captured pawn (it's on the same row as the source, but in the destination column)
+        const capturedPawnKey = positionToKey(sourceRow, destCol);
+        delete newBoard[capturedPawnKey];
+      }
 
       // Check for pawn promotion
       let finalPiece = { ...movingPiece, hasMoved: true };
@@ -175,12 +211,13 @@ export default function ChessBoardScreen() {
       setBoard(newBoard);
       setSelectedSquare(null);
       setLegalMoves([]);
+      setLastMove({ from: selectedSquare, to: key, movedTwoSquares });
       setCurrentPlayer(currentPlayer === 'black' ? 'white' : 'black');
     }
     // If clicking on own piece, select it
     else if (piece && piece.color === currentPlayer) {
       setSelectedSquare(key);
-      setLegalMoves(calculateLegalMoves(board, key));
+      setLegalMoves(calculateLegalMoves(board, key, lastMove));
     }
     // If clicking elsewhere, deselect
     else {
