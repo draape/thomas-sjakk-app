@@ -10,7 +10,7 @@ const DARK_COLOR = '#7f9459';
 
 // Piece types
 type PieceColor = 'white' | 'black';
-type PieceType = 'bonde';
+type PieceType = 'bonde' | 'dronning';
 
 interface Piece {
   type: PieceType;
@@ -30,6 +30,8 @@ interface Position {
 // Import SVG components
 const WhiteBonde = require('@/assets/svg/white/bonde.svg');
 const BlackBonde = require('@/assets/svg/black/bonde.svg');
+const WhiteDronning = require('@/assets/svg/white/dronning.svg');
+const BlackDronning = require('@/assets/svg/black/dronning.svg');
 
 // Initial board setup - using 1-indexed rows (1 = bottom, 12 = top)
 // EasyBot (white) plays from top, so white pieces start at row 11
@@ -66,6 +68,9 @@ const keyToPosition = (key: string): Position => {
 const getPieceSvg = (piece: Piece) => {
   if (piece.type === 'bonde') {
     return piece.color === 'white' ? WhiteBonde : BlackBonde;
+  }
+  if (piece.type === 'dronning') {
+    return piece.color === 'white' ? WhiteDronning : BlackDronning;
   }
   return null;
 };
@@ -149,9 +154,22 @@ export default function ChessBoardScreen() {
     if (selectedSquare && legalMoves.includes(key)) {
       const newBoard = { ...board };
       const movingPiece = newBoard[selectedSquare];
+      const { row: destRow } = keyToPosition(key);
+
+      // Check for pawn promotion
+      let finalPiece = { ...movingPiece, hasMoved: true };
+      if (movingPiece.type === 'bonde') {
+        // White pawn reaches row 0 (bottom, row 1 in game coordinates)
+        // Black pawn reaches row 11 (top, row 12 in game coordinates)
+        const gameRow = BOARD_SIZE - destRow;
+        if ((movingPiece.color === 'white' && gameRow === 1) ||
+            (movingPiece.color === 'black' && gameRow === 12)) {
+          finalPiece = { ...finalPiece, type: 'dronning' };
+        }
+      }
 
       // Move the piece
-      newBoard[key] = { ...movingPiece, hasMoved: true };
+      newBoard[key] = finalPiece;
       delete newBoard[selectedSquare];
 
       setBoard(newBoard);
