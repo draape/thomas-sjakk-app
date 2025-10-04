@@ -96,6 +96,27 @@ const calculateLegalMoves = (board: BoardState, position: string): string[] => {
     }
   }
 
+  // Diagonal captures (one square forward and to the side)
+  const diagonalLeft = positionToKey(row - direction, col - 1);
+  const diagonalRight = positionToKey(row - direction, col + 1);
+
+  if (row - direction >= 0 && row - direction < BOARD_SIZE) {
+    // Left diagonal
+    if (col - 1 >= 0) {
+      const targetPiece = board[diagonalLeft];
+      if (targetPiece && targetPiece.color !== piece.color) {
+        legalMoves.push(diagonalLeft);
+      }
+    }
+    // Right diagonal
+    if (col + 1 < BOARD_SIZE) {
+      const targetPiece = board[diagonalRight];
+      if (targetPiece && targetPiece.color !== piece.color) {
+        legalMoves.push(diagonalRight);
+      }
+    }
+  }
+
   return legalMoves;
 };
 
