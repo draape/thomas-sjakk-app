@@ -168,6 +168,14 @@ export default function ChessBoardScreen() {
   const [currentPlayer, setCurrentPlayer] = useState<PieceColor>('white'); // White (EasyBot) starts
   const [lastMove, setLastMove] = useState<{ from: string; to: string; movedTwoSquares: boolean } | null>(null);
 
+  const handleNewGame = () => {
+    setBoard(createInitialBoard());
+    setSelectedSquare(null);
+    setLegalMoves([]);
+    setCurrentPlayer('white');
+    setLastMove(null);
+  };
+
   const handleSquarePress = (row: number, col: number) => {
     const key = positionToKey(row, col);
     const piece = board[key];
@@ -293,9 +301,14 @@ export default function ChessBoardScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <ThemedText type="title" style={styles.title}>
-        Sjakkbrett
-      </ThemedText>
+      <View style={styles.header}>
+        <ThemedText type="title" style={styles.title}>
+          Sjakkbrett
+        </ThemedText>
+        <TouchableOpacity style={styles.newGameButton} onPress={handleNewGame}>
+          <ThemedText style={styles.newGameButtonText}>Nytt spill</ThemedText>
+        </TouchableOpacity>
+      </View>
 
       {renderPlayerInfo(opponent, true)}
 
@@ -316,9 +329,27 @@ const styles = StyleSheet.create({
     paddingTop: 60,
     paddingHorizontal: 20,
   },
-  title: {
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    width: '100%',
+    maxWidth: 500,
     marginBottom: 20,
+  },
+  title: {
     fontSize: 28,
+  },
+  newGameButton: {
+    backgroundColor: '#4CAF50',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 6,
+  },
+  newGameButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
   },
   playerInfo: {
     flexDirection: 'row',
