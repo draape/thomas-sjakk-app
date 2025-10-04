@@ -1,5 +1,6 @@
-import { StyleSheet, View, SafeAreaView } from 'react-native';
+import { StyleSheet, View, SafeAreaView, TouchableOpacity } from 'react-native';
 import { Image } from 'expo-image';
+import { useState } from 'react';
 
 import { ThemedText } from '@/components/themed-text';
 
@@ -14,6 +15,16 @@ type PieceType = 'bonde';
 interface Piece {
   type: PieceType;
   color: PieceColor;
+  hasMoved?: boolean;
+}
+
+interface BoardState {
+  [key: string]: Piece;
+}
+
+interface Position {
+  row: number;
+  col: number;
 }
 
 // Import SVG components
@@ -23,25 +34,32 @@ const BlackBonde = require('@/assets/svg/black/bonde.svg');
 // Initial board setup - using 1-indexed rows (1 = bottom, 12 = top)
 // EasyBot (white) plays from top, so white pieces start at row 11
 // Thomas (black) plays from bottom, so black pieces start at row 2
-const initialBoard: { [key: string]: Piece } = {};
-// Black pawns on row 2 (Thomas at bottom)
-for (let col = 0; col < 12; col++) {
-  const colLetter = String.fromCharCode('a'.charCodeAt(0) + col);
-  initialBoard[`${colLetter}2`] = { type: 'bonde', color: 'black' };
-}
-// White pawns on row 11 (EasyBot at top)
-for (let col = 0; col < 12; col++) {
-  const colLetter = String.fromCharCode('a'.charCodeAt(0) + col);
-  initialBoard[`${colLetter}11`] = { type: 'bonde', color: 'white' };
-}
+const createInitialBoard = (): BoardState => {
+  const board: BoardState = {};
+  // Black pawns on row 2 (Thomas at bottom)
+  for (let col = 0; col < 12; col++) {
+    const colLetter = String.fromCharCode('a'.charCodeAt(0) + col);
+    board[`${colLetter}2`] = { type: 'bonde', color: 'black', hasMoved: false };
+  }
+  // White pawns on row 11 (EasyBot at top)
+  for (let col = 0; col < 12; col++) {
+    const colLetter = String.fromCharCode('a'.charCodeAt(0) + col);
+    board[`${colLetter}11`] = { type: 'bonde', color: 'white', hasMoved: false };
+  }
+  return board;
+};
 
-// Helper function to get piece at position
-const getPiece = (row: number, col: number): Piece | null => {
-  // Convert 0-indexed display row to 1-indexed game row (row 0 displays as row 12)
+// Helper functions
+const positionToKey = (row: number, col: number): string => {
   const gameRow = BOARD_SIZE - row;
   const colLetter = String.fromCharCode('a'.charCodeAt(0) + col);
-  const position = `${colLetter}${gameRow}`;
-  return initialBoard[position] || null;
+  return `${colLetter}${gameRow}`;
+};
+
+const keyToPosition = (key: string): Position => {
+  const col = key.charCodeAt(0) - 'a'.charCodeAt(0);
+  const row = BOARD_SIZE - parseInt(key.slice(1));
+  return { row, col };
 };
 
 // Get SVG component for piece
@@ -50,6 +68,35 @@ const getPieceSvg = (piece: Piece) => {
     return piece.color === 'white' ? WhiteBonde : BlackBonde;
   }
   return null;
+};
+
+// Calculate legal moves for a pawn
+const calculateLegalMoves = (board: BoardState, position: string): string[] => {
+  const piece = board[position];
+  if (!piece || piece.type !== 'bonde') return [];
+
+  const { row, col } = keyToPosition(position);
+  const legalMoves: string[] = [];
+
+  // Pawns move forward based on color
+  // White (top) moves down (increasing row in display), Black (bottom) moves up (decreasing row in display)
+  const direction = piece.color === 'white' ? -1 : 1;
+
+  // One square forward
+  const oneForward = positionToKey(row - direction, col);
+  if (row - direction >= 0 && row - direction < BOARD_SIZE && !board[oneForward]) {
+    legalMoves.push(oneForward);
+
+    // Two squares forward if hasn't moved yet
+    if (!piece.hasMoved) {
+      const twoForward = positionToKey(row - direction * 2, col);
+      if (row - direction * 2 >= 0 && row - direction * 2 < BOARD_SIZE && !board[twoForward]) {
+        legalMoves.push(twoForward);
+      }
+    }
+  }
+
+  return legalMoves;
 };
 
 // Player info
@@ -68,6 +115,41 @@ const player = {
 };
 
 export default function ChessBoardScreen() {
+  const [board, setBoard] = useState<BoardState>(createInitialBoard());
+  const [selectedSquare, setSelectedSquare] = useState<string | null>(null);
+  const [legalMoves, setLegalMoves] = useState<string[]>([]);
+  const [currentPlayer, setCurrentPlayer] = useState<PieceColor>('black'); // Thomas starts
+
+  const handleSquarePress = (row: number, col: number) => {
+    const key = positionToKey(row, col);
+    const piece = board[key];
+
+    // If clicking on a legal move, move the piece
+    if (selectedSquare && legalMoves.includes(key)) {
+      const newBoard = { ...board };
+      const movingPiece = newBoard[selectedSquare];
+
+      // Move the piece
+      newBoard[key] = { ...movingPiece, hasMoved: true };
+      delete newBoard[selectedSquare];
+
+      setBoard(newBoard);
+      setSelectedSquare(null);
+      setLegalMoves([]);
+      setCurrentPlayer(currentPlayer === 'black' ? 'white' : 'black');
+    }
+    // If clicking on own piece, select it
+    else if (piece && piece.color === currentPlayer) {
+      setSelectedSquare(key);
+      setLegalMoves(calculateLegalMoves(board, key));
+    }
+    // If clicking elsewhere, deselect
+    else {
+      setSelectedSquare(null);
+      setLegalMoves([]);
+    }
+  };
+
   const renderPlayerInfo = (playerData: typeof opponent, isTop: boolean) => {
     return (
       <View style={styles.playerInfo}>
@@ -99,21 +181,29 @@ export default function ChessBoardScreen() {
       const squares = [];
       for (let col = 0; col < BOARD_SIZE; col++) {
         const isLight = (row + col) % 2 === 0;
-        const piece = getPiece(row, col);
+        const key = positionToKey(row, col);
+        const piece = board[key];
         const PieceSvg = piece ? getPieceSvg(piece) : null;
+        const isSelected = selectedSquare === key;
+        const isLegalMove = legalMoves.includes(key);
 
         squares.push(
-          <View
+          <TouchableOpacity
             key={`${row}-${col}`}
             style={[
               styles.square,
-              { backgroundColor: isLight ? LIGHT_COLOR : DARK_COLOR }
+              { backgroundColor: isLight ? LIGHT_COLOR : DARK_COLOR },
+              isSelected && styles.selectedSquare,
             ]}
+            onPress={() => handleSquarePress(row, col)}
           >
             {PieceSvg && (
               <Image source={PieceSvg} style={styles.pieceImage} />
             )}
-          </View>
+            {isLegalMove && (
+              <View style={styles.legalMoveDot} />
+            )}
+          </TouchableOpacity>
         );
       }
       rows.push(
@@ -218,6 +308,16 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  selectedSquare: {
+    backgroundColor: '#baca44',
+  },
+  legalMoveDot: {
+    position: 'absolute',
+    width: '30%',
+    height: '30%',
+    borderRadius: 100,
+    backgroundColor: 'rgba(0, 0, 0, 0.3)',
   },
   pieceImage: {
     width: '80%',
