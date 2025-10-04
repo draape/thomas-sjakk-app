@@ -1,3 +1,10 @@
+# Brettet
+
+- Brettet består av 12 kolonner og 12 rader.
+- Radene går fra 1-12, kolonnene går fra a-l
+- Hvite brikker starter på rad 1 og 2, svarte brikker starter på rad 12 og 11.
+- Spilleren vises alltid nederst på skjermen, uavhengig om man spiller med svart eller hvit. Motspilleren (bot-en) vises alltid øverst på skjermen.
+
 ## Spilleropplevelse
 
 - Man kan bare flytte sine egne brikker

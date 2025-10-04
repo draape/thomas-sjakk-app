@@ -19,5 +19,5 @@
 
 ### Retning
 
-- Hvite bønder (øverst på brettet) flytter nedover mot svart
-- Svarte bønder (nederst på brettet) flytter oppover mot hvit
+- Hvite bønder flytter mot de svarte brikkene
+- Svarte bønder flytter mot de hvite brikkene

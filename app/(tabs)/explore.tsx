@@ -36,19 +36,19 @@ const WhiteKonge = require('@/assets/svg/white/konge.svg');
 const BlackKonge = require('@/assets/svg/black/konge.svg');
 
 // Initial board setup - using 1-indexed rows (1 = bottom, 12 = top)
-// EasyBot (white) plays from top, so white pieces start at row 11
-// Thomas (black) plays from bottom, so black pieces start at row 2
+// White pieces start on rows 1 and 2 (bottom)
+// Black pieces start on rows 12 and 11 (top)
 const createInitialBoard = (): BoardState => {
   const board: BoardState = {};
-  // Black pawns on row 2 (Thomas at bottom)
+  // White pawns on row 2 (bottom)
   for (let col = 0; col < 12; col++) {
     const colLetter = String.fromCharCode('a'.charCodeAt(0) + col);
-    board[`${colLetter}2`] = { type: 'bonde', color: 'black', hasMoved: false };
+    board[`${colLetter}2`] = { type: 'bonde', color: 'white', hasMoved: false };
   }
-  // White pawns on row 11 (EasyBot at top)
+  // Black pawns on row 11 (top)
   for (let col = 0; col < 12; col++) {
     const colLetter = String.fromCharCode('a'.charCodeAt(0) + col);
-    board[`${colLetter}11`] = { type: 'bonde', color: 'white', hasMoved: false };
+    board[`${colLetter}11`] = { type: 'bonde', color: 'black', hasMoved: false };
   }
 
   // Kings - white king at g1, black king at g12
@@ -128,8 +128,9 @@ const calculatePawnMoves = (board: BoardState, position: string, lastMove: { fro
   const legalMoves: string[] = [];
 
   // Pawns move forward based on color
-  // White (top) moves down (increasing row in display), Black (bottom) moves up (decreasing row in display)
-  const direction = piece.color === 'white' ? -1 : 1;
+  // White (bottom) moves up toward black (decreasing row in display)
+  // Black (top) moves down toward white (increasing row in display)
+  const direction = piece.color === 'white' ? 1 : -1;
 
   // One square forward
   const oneForward = positionToKey(row - direction, col);
@@ -206,18 +207,20 @@ const calculateLegalMoves = (board: BoardState, position: string, lastMove: { fr
 };
 
 // Player info
-const opponent = {
-  name: 'EasyBot 1000',
-  rating: 1200,
-  color: 'Hvit',
-  avatar: require('@/assets/images/easybot.jpg'),
-};
-
+// Player (Thomas) is always at the bottom, opponent (bot) at the top
+// White pieces are at the bottom, black pieces at the top
 const player = {
   name: 'Thomas',
   rating: 1450,
-  color: 'Svart',
+  color: 'Hvit',  // Player plays white (bottom)
   avatar: require('@/assets/images/thomas.jpg'),
+};
+
+const opponent = {
+  name: 'EasyBot 1000',
+  rating: 1200,
+  color: 'Svart',  // Bot plays black (top)
+  avatar: require('@/assets/images/easybot.jpg'),
 };
 
 export default function ChessBoardScreen() {
@@ -262,11 +265,11 @@ export default function ChessBoardScreen() {
       // Check for pawn promotion
       let finalPiece = { ...movingPiece, hasMoved: true };
       if (movingPiece.type === 'bonde') {
-        // White pawn reaches row 0 (bottom, row 1 in game coordinates)
-        // Black pawn reaches row 11 (top, row 12 in game coordinates)
+        // White pawn reaches row 11 (top, row 12 in game coordinates) - opponent's first rank
+        // Black pawn reaches row 0 (bottom, row 1 in game coordinates) - opponent's first rank
         const gameRow = BOARD_SIZE - destRow;
-        if ((movingPiece.color === 'white' && gameRow === 1) ||
-            (movingPiece.color === 'black' && gameRow === 12)) {
+        if ((movingPiece.color === 'white' && gameRow === 12) ||
+            (movingPiece.color === 'black' && gameRow === 1)) {
           finalPiece = { ...finalPiece, type: 'dronning' };
         }
       }
