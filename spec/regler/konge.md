@@ -12,6 +12,7 @@ Hver spiller har én konge. Hvit konge starter på felt g1, svart konge starter 
 
 ## Å ta motstanders brikker
 
-## Spesielle regler
+- Kongen kan ta alle brikker som står der den kan flytte.
+- Kongen kan ikke flytte til et sted der den kan bli tatt neste runde. Disse feltene vises med et kryss, likt prikken som vises for lovlige trekk.
 
-## Retning
+## Spesielle regler

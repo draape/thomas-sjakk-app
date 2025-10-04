@@ -85,13 +85,54 @@ const getPieceSvg = (piece: Piece) => {
   return null;
 };
 
+// Check if a square is under attack by opponent
+const isSquareUnderAttack = (board: BoardState, position: string, byColor: PieceColor): boolean => {
+  const { row, col } = keyToPosition(position);
+
+  // Check for attacking pawns
+  const pawnDirection = byColor === 'white' ? 1 : -1; // Opposite of pawn's forward direction
+  const pawnAttackPositions = [
+    positionToKey(row + pawnDirection, col - 1),
+    positionToKey(row + pawnDirection, col + 1),
+  ];
+
+  for (const attackPos of pawnAttackPositions) {
+    const attacker = board[attackPos];
+    if (attacker && attacker.type === 'bonde' && attacker.color === byColor) {
+      return true;
+    }
+  }
+
+  // Check for attacking king (king can't move next to another king)
+  const kingDirections = [
+    [-1, -1], [-1, 0], [-1, 1],
+    [0, -1],           [0, 1],
+    [1, -1],  [1, 0],  [1, 1],
+  ];
+
+  for (const [dRow, dCol] of kingDirections) {
+    const newRow = row + dRow;
+    const newCol = col + dCol;
+    if (newRow >= 0 && newRow < BOARD_SIZE && newCol >= 0 && newCol < BOARD_SIZE) {
+      const attackPos = positionToKey(newRow, newCol);
+      const attacker = board[attackPos];
+      if (attacker && attacker.type === 'konge' && attacker.color === byColor) {
+        return true;
+      }
+    }
+  }
+
+  return false;
+};
+
 // Calculate legal moves for a king
 const calculateKingMoves = (board: BoardState, position: string): string[] => {
   const piece = board[position];
   if (!piece || piece.type !== 'konge') return [];
 
   const { row, col } = keyToPosition(position);
-  const legalMoves: string[] = [];
+  const potentialMoves: string[] = [];
+  const opponentColor: PieceColor = piece.color === 'white' ? 'black' : 'white';
 
   // King can move one square in all directions (8 possible moves)
   const directions = [
@@ -111,10 +152,25 @@ const calculateKingMoves = (board: BoardState, position: string): string[] => {
 
       // Can move to empty square or capture opponent's piece
       if (!targetPiece || targetPiece.color !== piece.color) {
-        legalMoves.push(targetKey);
+        potentialMoves.push(targetKey);
       }
     }
   }
+
+  // Filter out squares that are under attack
+  const legalMoves = potentialMoves.filter(move => {
+    // Create a temporary board with the king moved
+    const tempBoard = { ...board };
+    delete tempBoard[position];
+    if (board[move]) {
+      // If capturing, remove the captured piece
+      delete tempBoard[move];
+    }
+    tempBoard[move] = piece;
+
+    // Check if the king would be under attack at the new position
+    return !isSquareUnderAttack(tempBoard, move, opponentColor);
+  });
 
   return legalMoves;
 };
@@ -227,6 +283,7 @@ export default function ChessBoardScreen() {
   const [board, setBoard] = useState<BoardState>(createInitialBoard());
   const [selectedSquare, setSelectedSquare] = useState<string | null>(null);
   const [legalMoves, setLegalMoves] = useState<string[]>([]);
+  const [attackedSquares, setAttackedSquares] = useState<string[]>([]); // Squares under attack (for king)
   const [currentPlayer, setCurrentPlayer] = useState<PieceColor>('white'); // White (EasyBot) starts
   const [lastMove, setLastMove] = useState<{ from: string; to: string; movedTwoSquares: boolean } | null>(null);
 
@@ -234,6 +291,7 @@ export default function ChessBoardScreen() {
     setBoard(createInitialBoard());
     setSelectedSquare(null);
     setLegalMoves([]);
+    setAttackedSquares([]);
     setCurrentPlayer('white');
     setLastMove(null);
   };
@@ -281,18 +339,52 @@ export default function ChessBoardScreen() {
       setBoard(newBoard);
       setSelectedSquare(null);
       setLegalMoves([]);
+      setAttackedSquares([]);
       setLastMove({ from: selectedSquare, to: key, movedTwoSquares });
       setCurrentPlayer(currentPlayer === 'black' ? 'white' : 'black');
     }
     // If clicking on own piece, select it
     else if (piece && piece.color === currentPlayer) {
       setSelectedSquare(key);
-      setLegalMoves(calculateLegalMoves(board, key, lastMove));
+      const moves = calculateLegalMoves(board, key, lastMove);
+      setLegalMoves(moves);
+
+      // If it's a king, also calculate which squares are under attack
+      if (piece.type === 'konge') {
+        const opponentColor: PieceColor = piece.color === 'white' ? 'black' : 'white';
+        const { row, col } = keyToPosition(key);
+        const attacked: string[] = [];
+
+        // Check all potential king moves
+        const directions = [
+          [-1, -1], [-1, 0], [-1, 1],
+          [0, -1],           [0, 1],
+          [1, -1],  [1, 0],  [1, 1],
+        ];
+
+        for (const [dRow, dCol] of directions) {
+          const newRow = row + dRow;
+          const newCol = col + dCol;
+          if (newRow >= 0 && newRow < BOARD_SIZE && newCol >= 0 && newCol < BOARD_SIZE) {
+            const targetKey = positionToKey(newRow, newCol);
+            const targetPiece = board[targetKey];
+
+            // Square is accessible (empty or has opponent piece) but is under attack
+            if ((!targetPiece || targetPiece.color !== piece.color) && !moves.includes(targetKey)) {
+              attacked.push(targetKey);
+            }
+          }
+        }
+        setAttackedSquares(attacked);
+      } else {
+        setAttackedSquares([]);
+      }
     }
     // If clicking elsewhere, deselect
     else {
       setSelectedSquare(null);
       setLegalMoves([]);
+      setAttackedSquares([]);
     }
   };
 
@@ -332,6 +424,7 @@ export default function ChessBoardScreen() {
         const PieceSvg = piece ? getPieceSvg(piece) : null;
         const isSelected = selectedSquare === key;
         const isLegalMove = legalMoves.includes(key);
+        const isUnderAttack = attackedSquares.includes(key);
 
         squares.push(
           <TouchableOpacity
@@ -348,6 +441,12 @@ export default function ChessBoardScreen() {
             )}
             {isLegalMove && (
               <View style={styles.legalMoveDot} />
+            )}
+            {isUnderAttack && (
+              <View style={styles.attackedSquareCross}>
+                <View style={styles.crossLine1} />
+                <View style={styles.crossLine2} />
+              </View>
             )}
           </TouchableOpacity>
         );
@@ -487,6 +586,27 @@ const styles = StyleSheet.create({
     height: '30%',
     borderRadius: 100,
     backgroundColor: 'rgba(0, 0, 0, 0.3)',
+  },
+  attackedSquareCross: {
+    position: 'absolute',
+    width: '40%',
+    height: '40%',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  crossLine1: {
+    position: 'absolute',
+    width: '100%',
+    height: 2,
+    backgroundColor: 'rgba(255, 0, 0, 0.6)',
+    transform: [{ rotate: '45deg' }],
+  },
+  crossLine2: {
+    position: 'absolute',
+    width: '100%',
+    height: 2,
+    backgroundColor: 'rgba(255, 0, 0, 0.6)',
+    transform: [{ rotate: '-45deg' }],
   },
   pieceImage: {
     width: '80%',
