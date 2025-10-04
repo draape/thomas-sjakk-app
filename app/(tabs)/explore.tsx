@@ -21,16 +21,18 @@ const WhiteBonde = require('@/assets/svg/white/bonde.svg');
 const BlackBonde = require('@/assets/svg/black/bonde.svg');
 
 // Initial board setup - using 1-indexed rows (1 = bottom, 12 = top)
+// EasyBot (white) plays from top, so white pieces start at row 11
+// Thomas (black) plays from bottom, so black pieces start at row 2
 const initialBoard: { [key: string]: Piece } = {};
-// White pawns on row 2
+// Black pawns on row 2 (Thomas at bottom)
 for (let col = 0; col < 12; col++) {
   const colLetter = String.fromCharCode('a'.charCodeAt(0) + col);
-  initialBoard[`${colLetter}2`] = { type: 'bonde', color: 'white' };
+  initialBoard[`${colLetter}2`] = { type: 'bonde', color: 'black' };
 }
-// Black pawns on row 11
+// White pawns on row 11 (EasyBot at top)
 for (let col = 0; col < 12; col++) {
   const colLetter = String.fromCharCode('a'.charCodeAt(0) + col);
-  initialBoard[`${colLetter}11`] = { type: 'bonde', color: 'black' };
+  initialBoard[`${colLetter}11`] = { type: 'bonde', color: 'white' };
 }
 
 // Helper function to get piece at position
