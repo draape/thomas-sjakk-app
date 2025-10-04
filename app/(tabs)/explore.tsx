@@ -10,7 +10,7 @@ const DARK_COLOR = '#7f9459';
 
 // Piece types
 type PieceColor = 'white' | 'black';
-type PieceType = 'bonde' | 'dronning';
+type PieceType = 'bonde' | 'dronning' | 'konge';
 
 interface Piece {
   type: PieceType;
@@ -32,6 +32,8 @@ const WhiteBonde = require('@/assets/svg/white/bonde.svg');
 const BlackBonde = require('@/assets/svg/black/bonde.svg');
 const WhiteDronning = require('@/assets/svg/white/dronning.svg');
 const BlackDronning = require('@/assets/svg/black/dronning.svg');
+const WhiteKonge = require('@/assets/svg/white/konge.svg');
+const BlackKonge = require('@/assets/svg/black/konge.svg');
 
 // Initial board setup - using 1-indexed rows (1 = bottom, 12 = top)
 // EasyBot (white) plays from top, so white pieces start at row 11
@@ -48,6 +50,11 @@ const createInitialBoard = (): BoardState => {
     const colLetter = String.fromCharCode('a'.charCodeAt(0) + col);
     board[`${colLetter}11`] = { type: 'bonde', color: 'white', hasMoved: false };
   }
+
+  // Kings - white king at g1, black king at g12
+  board['g1'] = { type: 'konge', color: 'white', hasMoved: false };
+  board['g12'] = { type: 'konge', color: 'black', hasMoved: false };
+
   return board;
 };
 
@@ -72,11 +79,48 @@ const getPieceSvg = (piece: Piece) => {
   if (piece.type === 'dronning') {
     return piece.color === 'white' ? WhiteDronning : BlackDronning;
   }
+  if (piece.type === 'konge') {
+    return piece.color === 'white' ? WhiteKonge : BlackKonge;
+  }
   return null;
 };
 
+// Calculate legal moves for a king
+const calculateKingMoves = (board: BoardState, position: string): string[] => {
+  const piece = board[position];
+  if (!piece || piece.type !== 'konge') return [];
+
+  const { row, col } = keyToPosition(position);
+  const legalMoves: string[] = [];
+
+  // King can move one square in all directions (8 possible moves)
+  const directions = [
+    [-1, -1], [-1, 0], [-1, 1],  // up-left, up, up-right
+    [0, -1],           [0, 1],   // left, right
+    [1, -1],  [1, 0],  [1, 1],   // down-left, down, down-right
+  ];
+
+  for (const [dRow, dCol] of directions) {
+    const newRow = row + dRow;
+    const newCol = col + dCol;
+
+    // Check if the new position is within bounds
+    if (newRow >= 0 && newRow < BOARD_SIZE && newCol >= 0 && newCol < BOARD_SIZE) {
+      const targetKey = positionToKey(newRow, newCol);
+      const targetPiece = board[targetKey];
+
+      // Can move to empty square or capture opponent's piece
+      if (!targetPiece || targetPiece.color !== piece.color) {
+        legalMoves.push(targetKey);
+      }
+    }
+  }
+
+  return legalMoves;
+};
+
 // Calculate legal moves for a pawn
-const calculateLegalMoves = (board: BoardState, position: string, lastMove: { from: string; to: string; movedTwoSquares: boolean } | null = null): string[] => {
+const calculatePawnMoves = (board: BoardState, position: string, lastMove: { from: string; to: string; movedTwoSquares: boolean } | null = null): string[] => {
   const piece = board[position];
   if (!piece || piece.type !== 'bonde') return [];
 
@@ -144,6 +188,21 @@ const calculateLegalMoves = (board: BoardState, position: string, lastMove: { fr
   }
 
   return legalMoves;
+};
+
+// Calculate legal moves for any piece
+const calculateLegalMoves = (board: BoardState, position: string, lastMove: { from: string; to: string; movedTwoSquares: boolean } | null = null): string[] => {
+  const piece = board[position];
+  if (!piece) return [];
+
+  switch (piece.type) {
+    case 'konge':
+      return calculateKingMoves(board, position);
+    case 'bonde':
+      return calculatePawnMoves(board, position, lastMove);
+    default:
+      return [];
+  }
 };
 
 // Player info
