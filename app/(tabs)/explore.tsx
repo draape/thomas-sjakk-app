@@ -1,6 +1,6 @@
 import { StyleSheet, View, SafeAreaView, TouchableOpacity } from 'react-native';
 import { Image } from 'expo-image';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 import { ThemedText } from '@/components/themed-text';
 
@@ -287,6 +287,78 @@ export default function ChessBoardScreen() {
   const [currentPlayer, setCurrentPlayer] = useState<PieceColor>('white'); // White (EasyBot) starts
   const [lastMove, setLastMove] = useState<{ from: string; to: string; movedTwoSquares: boolean } | null>(null);
 
+  // Get all legal moves for a color
+  const getAllLegalMovesForColor = (board: BoardState, color: PieceColor, lastMove: { from: string; to: string; movedTwoSquares: boolean } | null): { from: string; to: string }[] => {
+    const allMoves: { from: string; to: string }[] = [];
+
+    // Go through all squares
+    for (const [position, piece] of Object.entries(board)) {
+      if (piece.color === color) {
+        const moves = calculateLegalMoves(board, position, lastMove);
+        for (const move of moves) {
+          allMoves.push({ from: position, to: move });
+        }
+      }
+    }
+
+    return allMoves;
+  };
+
+  // EasyBot makes a random move
+  const makeBotMove = () => {
+    const botColor: PieceColor = 'black'; // Bot plays black
+    const allMoves = getAllLegalMovesForColor(board, botColor, lastMove);
+
+    if (allMoves.length === 0) return; // No legal moves
+
+    // Pick a random move
+    const randomMove = allMoves[Math.floor(Math.random() * allMoves.length)];
+
+    // Execute the move
+    const newBoard = { ...board };
+    const movingPiece = newBoard[randomMove.from];
+    const { row: sourceRow, col: sourceCol } = keyToPosition(randomMove.from);
+    const { row: destRow, col: destCol } = keyToPosition(randomMove.to);
+
+    // Check if this is a two-square pawn move
+    const movedTwoSquares = movingPiece.type === 'bonde' && Math.abs(destRow - sourceRow) === 2;
+
+    // Check for en passant capture
+    if (movingPiece.type === 'bonde' && Math.abs(destCol - sourceCol) === 1 && !board[randomMove.to]) {
+      const capturedPawnKey = positionToKey(sourceRow, destCol);
+      delete newBoard[capturedPawnKey];
+    }
+
+    // Check for pawn promotion
+    let finalPiece = { ...movingPiece, hasMoved: true };
+    if (movingPiece.type === 'bonde') {
+      const gameRow = BOARD_SIZE - destRow;
+      if ((movingPiece.color === 'white' && gameRow === 12) ||
+          (movingPiece.color === 'black' && gameRow === 1)) {
+        finalPiece = { ...finalPiece, type: 'dronning' };
+      }
+    }
+
+    // Move the piece
+    newBoard[randomMove.to] = finalPiece;
+    delete newBoard[randomMove.from];
+
+    setBoard(newBoard);
+    setLastMove({ from: randomMove.from, to: randomMove.to, movedTwoSquares });
+    setCurrentPlayer('white');
+  };
+
+  // Trigger bot move when it's bot's turn
+  useEffect(() => {
+    if (currentPlayer === 'black') {
+      // Add a small delay so the move isn't instant
+      const timeout = setTimeout(() => {
+        makeBotMove();
+      }, 500);
+      return () => clearTimeout(timeout);
+    }
+  }, [currentPlayer, board]);
+
   const handleNewGame = () => {
     setBoard(createInitialBoard());
     setSelectedSquare(null);
@@ -341,7 +413,7 @@ export default function ChessBoardScreen() {
       setLegalMoves([]);
       setAttackedSquares([]);
       setLastMove({ from: selectedSquare, to: key, movedTwoSquares });
-      setCurrentPlayer(currentPlayer === 'black' ? 'white' : 'black');
+      setCurrentPlayer('black'); // After player (white) moves, it's bot's (black) turn
     }
     // If clicking on own piece, select it
     else if (piece && piece.color === currentPlayer) {
