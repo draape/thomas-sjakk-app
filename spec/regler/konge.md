@@ -16,3 +16,8 @@ Hver spiller har én konge. Hvit konge starter på felt g1, svart konge starter 
 - Kongen kan ikke flytte til et sted der den kan bli tatt neste runde. Disse feltene vises med et kryss, likt prikken som vises for lovlige trekk.
 
 ## Spesielle regler
+
+- Dersom kongen er under angrep må en av tre ting skje
+  1. Kongen flytter til et felt som ikke er under angrep
+  2. En annen brikke kan ta brikken som angriper kongen
+  3. En annen brikke kan gå i mellom brikken som angriper kongen og kongen

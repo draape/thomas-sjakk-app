@@ -300,19 +300,50 @@ const calculatePawnMoves = (board: BoardState, position: string, lastMove: { fro
   return legalMoves;
 };
 
-// Calculate legal moves for any piece
+// Calculate legal moves for any piece, filtering out moves that would leave king in check
 const calculateLegalMoves = (board: BoardState, position: string, lastMove: { from: string; to: string; movedTwoSquares: boolean } | null = null): string[] => {
   const piece = board[position];
   if (!piece) return [];
 
+  let potentialMoves: string[] = [];
+
   switch (piece.type) {
     case 'konge':
-      return calculateKingMoves(board, position);
+      return calculateKingMoves(board, position); // King moves already filter out attacked squares
     case 'bonde':
-      return calculatePawnMoves(board, position, lastMove);
+      potentialMoves = calculatePawnMoves(board, position, lastMove);
+      break;
     default:
       return [];
   }
+
+  // For non-king pieces, filter out moves that would leave our king in check
+  const legalMoves = potentialMoves.filter(move => {
+    // Simulate the move
+    const tempBoard = { ...board };
+    const movingPiece = tempBoard[position];
+
+    // Handle en passant capture
+    if (movingPiece.type === 'bonde' && lastMove) {
+      const { row: sourceRow, col: sourceCol } = keyToPosition(position);
+      const { col: destCol } = keyToPosition(move);
+
+      // If moving diagonally to an empty square, it's en passant
+      if (Math.abs(destCol - sourceCol) === 1 && !tempBoard[move]) {
+        const capturedPawnKey = positionToKey(sourceRow, destCol);
+        delete tempBoard[capturedPawnKey];
+      }
+    }
+
+    // Execute the move on temp board
+    tempBoard[move] = movingPiece;
+    delete tempBoard[position];
+
+    // Check if our king would be in check after this move
+    return !isKingInCheck(tempBoard, piece.color);
+  });
+
+  return legalMoves;
 };
 
 // Player info
