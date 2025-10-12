@@ -2,7 +2,7 @@
 
 ## Oppstilling
 
-Hver spiller har to tårn. Hvite tårn starter på felt a1 og l1, svarte tårn starter på felt a12 og l12.
+Hver spiller har to tårn. Hvite tårn starter på felt a1 og k1, svarte tårn starter på felt a12 og k12.
 
 ## Flytteregler
 

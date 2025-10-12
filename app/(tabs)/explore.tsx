@@ -62,11 +62,11 @@ const createInitialBoard = (): BoardState => {
   board['f1'] = { type: 'dronning', color: 'white', hasMoved: false };
   board['f12'] = { type: 'dronning', color: 'black', hasMoved: false };
 
-  // Rooks - white rooks at a1 and l1, black rooks at a12 and l12
+  // Rooks - white rooks at a1 and k1, black rooks at a12 and k12
   board['a1'] = { type: 'tårn', color: 'white', hasMoved: false };
-  board['l1'] = { type: 'tårn', color: 'white', hasMoved: false };
+  board['k1'] = { type: 'tårn', color: 'white', hasMoved: false };
   board['a12'] = { type: 'tårn', color: 'black', hasMoved: false };
-  board['l12'] = { type: 'tårn', color: 'black', hasMoved: false };
+  board['k12'] = { type: 'tårn', color: 'black', hasMoved: false };
 
   return board;
 };
