@@ -3,6 +3,7 @@ import { Image } from 'expo-image';
 import { useState, useEffect } from 'react';
 
 import { ThemedText } from '@/components/themed-text';
+import { GameOverModal } from '@/components/game-over-modal';
 
 const BOARD_SIZE = 12;
 const LIGHT_COLOR = '#ebebd0';
@@ -123,6 +124,58 @@ const isSquareUnderAttack = (board: BoardState, position: string, byColor: Piece
   }
 
   return false;
+};
+
+// Find the king of a given color on the board
+const findKing = (board: BoardState, color: PieceColor): string | null => {
+  for (const [position, piece] of Object.entries(board)) {
+    if (piece.type === 'konge' && piece.color === color) {
+      return position;
+    }
+  }
+  return null;
+};
+
+// Check if a king is under attack (in check)
+const isKingInCheck = (board: BoardState, color: PieceColor): boolean => {
+  const kingPosition = findKing(board, color);
+  if (!kingPosition) return false;
+
+  const opponentColor: PieceColor = color === 'white' ? 'black' : 'white';
+  return isSquareUnderAttack(board, kingPosition, opponentColor);
+};
+
+// Check game status: 'ongoing', 'checkmate', or 'stalemate'
+type GameStatus = 'ongoing' | 'checkmate' | 'stalemate';
+
+const checkGameStatus = (board: BoardState, currentPlayerColor: PieceColor, lastMove: { from: string; to: string; movedTwoSquares: boolean } | null): GameStatus => {
+  // Check if the current player has any legal moves
+  const allMoves: { from: string; to: string }[] = [];
+
+  for (const [position, piece] of Object.entries(board)) {
+    if (piece.color === currentPlayerColor) {
+      const moves = calculateLegalMoves(board, position, lastMove);
+      for (const move of moves) {
+        allMoves.push({ from: position, to: move });
+      }
+    }
+  }
+
+  // If there are legal moves, game is ongoing
+  if (allMoves.length > 0) {
+    return 'ongoing';
+  }
+
+  // No legal moves - check if king is in check
+  const kingInCheck = isKingInCheck(board, currentPlayerColor);
+
+  if (kingInCheck) {
+    // King is in check and has no legal moves = checkmate
+    return 'checkmate';
+  } else {
+    // King is not in check but has no legal moves = stalemate
+    return 'stalemate';
+  }
 };
 
 // Calculate legal moves for a king
@@ -286,6 +339,7 @@ export default function ChessBoardScreen() {
   const [attackedSquares, setAttackedSquares] = useState<string[]>([]); // Squares under attack (for king)
   const [currentPlayer, setCurrentPlayer] = useState<PieceColor>('white'); // White (EasyBot) starts
   const [lastMove, setLastMove] = useState<{ from: string; to: string; movedTwoSquares: boolean } | null>(null);
+  const [gameStatus, setGameStatus] = useState<GameStatus>('ongoing');
 
   // Get all legal moves for a color
   const getAllLegalMovesForColor = (board: BoardState, color: PieceColor, lastMove: { from: string; to: string; movedTwoSquares: boolean } | null): { from: string; to: string }[] => {
@@ -344,8 +398,16 @@ export default function ChessBoardScreen() {
     delete newBoard[randomMove.from];
 
     setBoard(newBoard);
-    setLastMove({ from: randomMove.from, to: randomMove.to, movedTwoSquares });
-    setCurrentPlayer('white');
+    const newLastMove = { from: randomMove.from, to: randomMove.to, movedTwoSquares };
+    setLastMove(newLastMove);
+
+    // Check if the game is over after bot's move
+    const status = checkGameStatus(newBoard, 'white', newLastMove);
+    setGameStatus(status);
+
+    if (status === 'ongoing') {
+      setCurrentPlayer('white');
+    }
   };
 
   // Trigger bot move when it's bot's turn
@@ -366,6 +428,7 @@ export default function ChessBoardScreen() {
     setAttackedSquares([]);
     setCurrentPlayer('white');
     setLastMove(null);
+    setGameStatus('ongoing');
   };
 
   const handleSquarePress = (row: number, col: number) => {
@@ -412,8 +475,16 @@ export default function ChessBoardScreen() {
       setSelectedSquare(null);
       setLegalMoves([]);
       setAttackedSquares([]);
-      setLastMove({ from: selectedSquare, to: key, movedTwoSquares });
-      setCurrentPlayer('black'); // After player (white) moves, it's bot's (black) turn
+      const newLastMove = { from: selectedSquare, to: key, movedTwoSquares };
+      setLastMove(newLastMove);
+
+      // Check if the game is over after this move
+      const status = checkGameStatus(newBoard, 'black', newLastMove);
+      setGameStatus(status);
+
+      if (status === 'ongoing') {
+        setCurrentPlayer('black'); // After player (white) moves, it's bot's (black) turn
+      }
     }
     // If clicking on own piece, select it
     else if (piece && piece.color === currentPlayer) {
@@ -532,6 +603,24 @@ export default function ChessBoardScreen() {
     return rows;
   };
 
+  // Determine game result from player's perspective
+  const getGameResult = (): 'win' | 'loss' | 'draw' | null => {
+    if (gameStatus === 'ongoing') return null;
+    if (gameStatus === 'stalemate') return 'draw';
+
+    // Checkmate - determine winner
+    // If it's white's turn and checkmate, white lost (black won)
+    // If it's black's turn and checkmate, black lost (white won)
+    // Player is white, bot is black
+    if (currentPlayer === 'white') {
+      return 'loss'; // White (player) is checkmated
+    } else {
+      return 'win'; // Black (bot) is checkmated
+    }
+  };
+
+  const gameResult = getGameResult();
+
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
@@ -550,6 +639,13 @@ export default function ChessBoardScreen() {
       </View>
 
       {renderPlayerInfo(player, false)}
+
+      <GameOverModal
+        visible={gameResult !== null}
+        result={gameResult || 'draw'}
+        onNewGame={handleNewGame}
+        opponentDifficulty="easy"
+      />
     </SafeAreaView>
   );
 }
@@ -683,6 +779,5 @@ const styles = StyleSheet.create({
   pieceImage: {
     width: '80%',
     height: '80%',
-    contentFit: 'contain',
   },
 });

@@ -19,3 +19,7 @@
 - Spillerne bytter tur etter hvert trekk
 - Hvit spiller starter alltid
 - Man kan ikke flytte brikkene til motstanderen
+
+## Spillets slutt
+
+Spillet er slutt når kongen ikke har flere lovlige trekk. Hvis kongen er under angrep når dette skjer, vinner spilleren som angriper den andre kongen, det blir sjakk matt. Hvis kongen ikke er under angrep blir det uavgjort, sjakk patt.
