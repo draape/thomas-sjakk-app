@@ -104,6 +104,8 @@ const styles = StyleSheet.create({
   },
   medalEmoji: {
     fontSize: 80,
+    lineHeight: 90,
+    height: 90,
   },
   resultText: {
     fontSize: 32,

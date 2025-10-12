@@ -520,9 +520,8 @@ export default function ChessBoardScreen() {
     const status = checkGameStatus(newBoard, 'white', newLastMove);
     setGameStatus(status);
 
-    if (status === 'ongoing') {
-      setCurrentPlayer('white');
-    }
+    // Always switch to next player's turn (even if game is over, for result calculation)
+    setCurrentPlayer('white');
   };
 
   // Trigger bot move when it's bot's turn
@@ -597,9 +596,8 @@ export default function ChessBoardScreen() {
       const status = checkGameStatus(newBoard, 'black', newLastMove);
       setGameStatus(status);
 
-      if (status === 'ongoing') {
-        setCurrentPlayer('black'); // After player (white) moves, it's bot's (black) turn
-      }
+      // Always switch to next player's turn (even if game is over, for result calculation)
+      setCurrentPlayer('black');
     }
     // If clicking on own piece, select it
     else if (piece && piece.color === currentPlayer) {
@@ -723,14 +721,13 @@ export default function ChessBoardScreen() {
     if (gameStatus === 'ongoing') return null;
     if (gameStatus === 'stalemate') return 'draw';
 
-    // Checkmate - determine winner
-    // If it's white's turn and checkmate, white lost (black won)
-    // If it's black's turn and checkmate, black lost (white won)
+    // Checkmate - determine winner based on who has no legal moves
+    // currentPlayer is the one whose turn it is (and who has no moves)
     // Player is white, bot is black
     if (currentPlayer === 'white') {
-      return 'loss'; // White (player) is checkmated
+      return 'loss'; // White (player) has no moves and is checkmated - player lost
     } else {
-      return 'win'; // Black (bot) is checkmated
+      return 'win'; // Black (bot) has no moves and is checkmated - player won
     }
   };
 
