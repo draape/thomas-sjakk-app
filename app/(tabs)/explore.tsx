@@ -11,7 +11,7 @@ const DARK_COLOR = '#7f9459';
 
 // Piece types
 type PieceColor = 'white' | 'black';
-type PieceType = 'bonde' | 'dronning' | 'konge';
+type PieceType = 'bonde' | 'dronning' | 'konge' | 'tårn';
 
 interface Piece {
   type: PieceType;
@@ -35,6 +35,8 @@ const WhiteDronning = require('@/assets/svg/white/dronning.svg');
 const BlackDronning = require('@/assets/svg/black/dronning.svg');
 const WhiteKonge = require('@/assets/svg/white/konge.svg');
 const BlackKonge = require('@/assets/svg/black/konge.svg');
+const WhiteTårn = require('@/assets/svg/white/tårn.svg');
+const BlackTårn = require('@/assets/svg/black/tårn.svg');
 
 // Initial board setup - using 1-indexed rows (1 = bottom, 12 = top)
 // White pieces start on rows 1 and 2 (bottom)
@@ -59,6 +61,12 @@ const createInitialBoard = (): BoardState => {
   // Queens - white queen at f1, black queen at f12
   board['f1'] = { type: 'dronning', color: 'white', hasMoved: false };
   board['f12'] = { type: 'dronning', color: 'black', hasMoved: false };
+
+  // Rooks - white rooks at a1 and l1, black rooks at a12 and l12
+  board['a1'] = { type: 'tårn', color: 'white', hasMoved: false };
+  board['l1'] = { type: 'tårn', color: 'white', hasMoved: false };
+  board['a12'] = { type: 'tårn', color: 'black', hasMoved: false };
+  board['l12'] = { type: 'tårn', color: 'black', hasMoved: false };
 
   return board;
 };
@@ -86,6 +94,9 @@ const getPieceSvg = (piece: Piece) => {
   }
   if (piece.type === 'konge') {
     return piece.color === 'white' ? WhiteKonge : BlackKonge;
+  }
+  if (piece.type === 'tårn') {
+    return piece.color === 'white' ? WhiteTårn : BlackTårn;
   }
   return null;
 };
@@ -158,6 +169,38 @@ const isSquareUnderAttack = (board: BoardState, position: string, byColor: Piece
     }
   }
 
+  // Check for attacking rook (can attack horizontally and vertically)
+  const rookDirections = [
+    [-1, 0],  // up
+    [1, 0],   // down
+    [0, -1],  // left
+    [0, 1],   // right
+  ];
+
+  for (const [dRow, dCol] of rookDirections) {
+    let currentRow = row + dRow;
+    let currentCol = col + dCol;
+
+    // Check along this direction until we hit something
+    while (currentRow >= 0 && currentRow < BOARD_SIZE &&
+           currentCol >= 0 && currentCol < BOARD_SIZE) {
+      const attackPos = positionToKey(currentRow, currentCol);
+      const attacker = board[attackPos];
+
+      if (attacker) {
+        // Found a piece - check if it's an attacking rook
+        if (attacker.type === 'tårn' && attacker.color === byColor) {
+          return true;
+        }
+        // Hit a piece, can't attack through it
+        break;
+      }
+
+      currentRow += dRow;
+      currentCol += dCol;
+    }
+  }
+
   return false;
 };
 
@@ -211,6 +254,53 @@ const checkGameStatus = (board: BoardState, currentPlayerColor: PieceColor, last
     // King is not in check but has no legal moves = stalemate
     return 'stalemate';
   }
+};
+
+// Calculate legal moves for a rook
+const calculateRookMoves = (board: BoardState, position: string): string[] => {
+  const piece = board[position];
+  if (!piece || piece.type !== 'tårn') return [];
+
+  const { row, col } = keyToPosition(position);
+  const legalMoves: string[] = [];
+
+  // Rook can move in 4 directions: horizontal and vertical only
+  const directions = [
+    [-1, 0],  // up
+    [1, 0],   // down
+    [0, -1],  // left
+    [0, 1],   // right
+  ];
+
+  for (const [dRow, dCol] of directions) {
+    let currentRow = row + dRow;
+    let currentCol = col + dCol;
+
+    // Keep moving in this direction until we hit the edge or another piece
+    while (currentRow >= 0 && currentRow < BOARD_SIZE &&
+           currentCol >= 0 && currentCol < BOARD_SIZE) {
+      const targetKey = positionToKey(currentRow, currentCol);
+      const targetPiece = board[targetKey];
+
+      if (!targetPiece) {
+        // Empty square - can move here
+        legalMoves.push(targetKey);
+      } else if (targetPiece.color !== piece.color) {
+        // Opponent's piece - can capture it, but can't move further
+        legalMoves.push(targetKey);
+        break;
+      } else {
+        // Own piece - can't move here or further
+        break;
+      }
+
+      // Move to next square in this direction
+      currentRow += dRow;
+      currentCol += dCol;
+    }
+  }
+
+  return legalMoves;
 };
 
 // Calculate legal moves for a queen
@@ -396,6 +486,9 @@ const calculateLegalMoves = (board: BoardState, position: string, lastMove: { fr
       break;
     case 'dronning':
       potentialMoves = calculateQueenMoves(board, position);
+      break;
+    case 'tårn':
+      potentialMoves = calculateRookMoves(board, position);
       break;
     default:
       return [];
