@@ -56,6 +56,10 @@ const createInitialBoard = (): BoardState => {
   board['g1'] = { type: 'konge', color: 'white', hasMoved: false };
   board['g12'] = { type: 'konge', color: 'black', hasMoved: false };
 
+  // Queens - white queen at f1, black queen at f12
+  board['f1'] = { type: 'dronning', color: 'white', hasMoved: false };
+  board['f12'] = { type: 'dronning', color: 'black', hasMoved: false };
+
   return board;
 };
 
@@ -123,6 +127,37 @@ const isSquareUnderAttack = (board: BoardState, position: string, byColor: Piece
     }
   }
 
+  // Check for attacking queen (can attack from any direction along lines)
+  const queenDirections = [
+    [-1, -1], [-1, 0], [-1, 1],  // up-left, up, up-right
+    [0, -1],           [0, 1],   // left, right
+    [1, -1],  [1, 0],  [1, 1],   // down-left, down, down-right
+  ];
+
+  for (const [dRow, dCol] of queenDirections) {
+    let currentRow = row + dRow;
+    let currentCol = col + dCol;
+
+    // Check along this direction until we hit something
+    while (currentRow >= 0 && currentRow < BOARD_SIZE &&
+           currentCol >= 0 && currentCol < BOARD_SIZE) {
+      const attackPos = positionToKey(currentRow, currentCol);
+      const attacker = board[attackPos];
+
+      if (attacker) {
+        // Found a piece - check if it's an attacking queen
+        if (attacker.type === 'dronning' && attacker.color === byColor) {
+          return true;
+        }
+        // Hit a piece, can't attack through it
+        break;
+      }
+
+      currentRow += dRow;
+      currentCol += dCol;
+    }
+  }
+
   return false;
 };
 
@@ -176,6 +211,52 @@ const checkGameStatus = (board: BoardState, currentPlayerColor: PieceColor, last
     // King is not in check but has no legal moves = stalemate
     return 'stalemate';
   }
+};
+
+// Calculate legal moves for a queen
+const calculateQueenMoves = (board: BoardState, position: string): string[] => {
+  const piece = board[position];
+  if (!piece || piece.type !== 'dronning') return [];
+
+  const { row, col } = keyToPosition(position);
+  const legalMoves: string[] = [];
+
+  // Queen can move in 8 directions: horizontal, vertical, and diagonal
+  const directions = [
+    [-1, -1], [-1, 0], [-1, 1],  // up-left, up, up-right
+    [0, -1],           [0, 1],   // left, right
+    [1, -1],  [1, 0],  [1, 1],   // down-left, down, down-right
+  ];
+
+  for (const [dRow, dCol] of directions) {
+    let currentRow = row + dRow;
+    let currentCol = col + dCol;
+
+    // Keep moving in this direction until we hit the edge or another piece
+    while (currentRow >= 0 && currentRow < BOARD_SIZE &&
+           currentCol >= 0 && currentCol < BOARD_SIZE) {
+      const targetKey = positionToKey(currentRow, currentCol);
+      const targetPiece = board[targetKey];
+
+      if (!targetPiece) {
+        // Empty square - can move here
+        legalMoves.push(targetKey);
+      } else if (targetPiece.color !== piece.color) {
+        // Opponent's piece - can capture it, but can't move further
+        legalMoves.push(targetKey);
+        break;
+      } else {
+        // Own piece - can't move here or further
+        break;
+      }
+
+      // Move to next square in this direction
+      currentRow += dRow;
+      currentCol += dCol;
+    }
+  }
+
+  return legalMoves;
 };
 
 // Calculate legal moves for a king
@@ -312,6 +393,9 @@ const calculateLegalMoves = (board: BoardState, position: string, lastMove: { fr
       return calculateKingMoves(board, position); // King moves already filter out attacked squares
     case 'bonde':
       potentialMoves = calculatePawnMoves(board, position, lastMove);
+      break;
+    case 'dronning':
+      potentialMoves = calculateQueenMoves(board, position);
       break;
     default:
       return [];
