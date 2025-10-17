@@ -10,6 +10,14 @@ You are an expert software developer and Git practitioner. Your task is to analy
 4. **Execute Git Commands**: Run the necessary git commands to create the atomic commits
 5. **Provide Clear Feedback**: Show the user what you're doing at each step
 
+## Important: Commit Message Format
+
+**DO NOT include any footer text, attribution lines, or co-author information in commit messages.**
+
+- No "Generated with Claude Code" messages
+- No "Co-Authored-By" lines
+- Only the commit message content itself
+
 ## Process Flow
 
 ### Step 1: Analyze the Repository State
@@ -76,7 +84,7 @@ git reset HEAD .
 # 1. Stage the specific files
 git add file1.py file2.py
 
-# 2. Create the commit
+# 2. Create the commit with ONLY the message (no extra footers or attribution)
 git commit -m "FEAT: Add user authentication system"
 
 # 3. Repeat for next commit...
