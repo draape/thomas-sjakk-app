@@ -1,40 +1,66 @@
 # Thomas-sjakk-app
 
-A 12x12 chess variant mobile application built with Expo and React Native. This chess app features a custom game where Thomas (the human player) plays against various AI bots on an extended 12x12 board with Norwegian piece names and UI.
-
-## Overview
-
-Thomas-sjakk-app is a mobile chess game that implements a 12x12 variant of chess instead of the traditional 8x8 board. The game features:
-
-- **Player vs Bot gameplay** - Human player (Thomas) always plays white, AI bots play black
-- **12x12 board** - Extended chess board with columns a-l and rows 1-12
-- **Norwegian language UI** - All game elements use Norwegian terminology
-- **Trophy collection system** - Track victories against different AI bots
-- **Rating system** - Player and bot ratings displayed during gameplay
-- **Complete chess mechanics** - Pawn promotion, en passant, checkmate/stalemate detection
+A 12x12 chess variant mobile application built with Expo and React Native. Thomas (the human player) plays against AI bots on an extended 12x12 board with Norwegian piece names and UI.
 
 ## Quick Start
 
 1. **Install dependencies**
-
    ```bash
    npm install
    ```
 
 2. **Start development server**
-
    ```bash
    npx expo start
    ```
 
 3. **Run on specific platforms**
    ```bash
-   npm run web        # Run in web browser (localhost:8081)
+   npm run web        # Run in web browser
    npm run android    # Run on Android emulator
    npm run ios        # Run on iOS simulator
    ```
 
-## Project Architecture
+## Game Features
+
+- **12x12 board** - Extended chess board with columns a-l and rows 1-12
+- **Player vs Bot** - Human player (Thomas) plays white, AI bots play black
+- **Norwegian terminology** - All piece names and UI elements in Norwegian
+- **Complete chess rules** - Pawn promotion, en passant, checkmate/stalemate detection
+- **Rating system** - Display player and bot ratings during gameplay
+- **Haptic feedback** - Enhanced mobile experience with tactile responses
+
+## Project Structure
+
+```
+app/
+├── (tabs)/               # Tab navigation screens
+│   ├── index.tsx        # Home screen with trophies and rating
+│   └── explore.tsx      # Main chess game screen
+└── _layout.tsx          # Root layout with theme provider
+
+components/
+├── chess/               # Chess-specific UI components
+│   ├── ChessBoard.tsx   # Game board rendering
+│   ├── ChessPiece.tsx   # Individual piece components
+│   ├── ChessSquare.tsx  # Board square components
+│   └── PlayerInfo.tsx   # Player information display
+└── themed-*.tsx         # Themed UI components
+
+lib/chess/               # Game logic and chess engine
+├── pieces/              # Individual piece movement logic
+├── game.ts             # Board state and game rules
+├── ai.ts               # Bot AI implementation
+├── types.ts            # TypeScript interfaces
+├── constants.ts        # Game constants and piece positions
+└── utils.ts            # Helper functions
+
+assets/
+├── images/             # Player avatars and app icons
+└── svg/               # Chess piece SVG assets (Norwegian names)
+    ├── black/         # Black piece set
+    └── white/         # White piece set
+```
 
 ## Technology Stack
 
@@ -69,17 +95,17 @@ npx expo install   # Install Expo-compatible dependencies
 
 ## Development Notes
 
-- TypeScript strict mode enabled with React 19.1.0
-- ESLint configured with Expo standards
-- Path aliases: `@/*` maps to project root (configured in tsconfig.json)
-- Norwegian language used throughout UI and documentation
-- Custom chess implementation (no external chess libraries)
-- Haptic feedback integration for mobile experience via expo-haptics
-- All game logic self-contained within the project
-- React Compiler experimental features enabled
-- Edge-to-edge rendering enabled on Android
-- Automatic UI style switching (light/dark mode support)
-- Tab-based navigation with typed routes
+- **TypeScript**: Strict mode enabled with React 19.1.0
+- **Linting**: ESLint configured with Expo standards
+- **Path aliases**: `@/*` maps to project root (configured in tsconfig.json)
+- **Language**: Norwegian terminology throughout UI and documentation
+- **Chess engine**: Custom implementation with modular piece logic (no external libraries)
+- **State management**: React hooks for game state and UI interactions
+- **Navigation**: Expo Router with tab-based navigation and typed routes
+- **Styling**: Custom theme system with light/dark mode support
+- **Mobile features**: Haptic feedback integration via expo-haptics
+- **Rendering**: Edge-to-edge rendering enabled on Android
+- **Build tools**: React Compiler experimental features enabled
 
 ## Prerequisites
 
