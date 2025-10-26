@@ -1,5 +1,5 @@
 export type PieceColor = "white" | "black";
-export type PieceType = "bonde" | "dronning" | "konge" | "tårn" | "løper";
+export type PieceType = "bonde" | "dronning" | "konge" | "tårn" | "løper" | "hest";
 export type GameStatus = "ongoing" | "checkmate" | "stalemate";
 
 export interface Piece {

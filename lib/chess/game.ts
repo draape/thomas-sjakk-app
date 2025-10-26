@@ -6,6 +6,7 @@ import { calculateRookMoves } from "./pieces/rook";
 import { calculateBishopMoves } from "./pieces/bishop";
 import { calculateQueenMoves } from "./pieces/queen";
 import { calculateKingMoves } from "./pieces/king";
+import { calculateKnightMoves } from "./pieces/knight";
 
 export const createInitialBoard = (): BoardState => {
   const board: BoardState = {};
@@ -46,6 +47,14 @@ export const createInitialBoard = (): BoardState => {
     board[pos] = { type: "løper", color: "black", hasMoved: false };
   });
 
+  // Knights
+  INITIAL_POSITIONS.WHITE_KNIGHTS.forEach(pos => {
+    board[pos] = { type: "hest", color: "white", hasMoved: false };
+  });
+  INITIAL_POSITIONS.BLACK_KNIGHTS.forEach(pos => {
+    board[pos] = { type: "hest", color: "black", hasMoved: false };
+  });
+
   return board;
 };
 
@@ -67,6 +76,26 @@ export const isSquareUnderAttack = (
     const attacker = board[attackPos];
     if (attacker && attacker.type === "bonde" && attacker.color === byColor) {
       return true;
+    }
+  }
+
+  // Check for attacking knights
+  const knightMoves = [
+    [-2, -1], [-2, 1],
+    [2, -1],  [2, 1],
+    [-1, -2], [-1, 2],
+    [1, -2],  [1, 2],
+  ];
+
+  for (const [dRow, dCol] of knightMoves) {
+    const knightRow = row + dRow;
+    const knightCol = col + dCol;
+    if (isValidPosition(knightRow, knightCol)) {
+      const attackPos = positionToKey(knightRow, knightCol);
+      const attacker = board[attackPos];
+      if (attacker && attacker.type === "hest" && attacker.color === byColor) {
+        return true;
+      }
     }
   }
 
@@ -163,6 +192,9 @@ export const calculateLegalMoves = (
       break;
     case "løper":
       potentialMoves = calculateBishopMoves(board, position);
+      break;
+    case "hest":
+      potentialMoves = calculateKnightMoves(board, position);
       break;
     default:
       return [];

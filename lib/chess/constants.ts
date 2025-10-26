@@ -9,6 +9,7 @@ export const PIECE_SVGS = {
     konge: require("@/assets/svg/white/konge.svg"),
     tårn: require("@/assets/svg/white/tårn.svg"),
     løper: require("@/assets/svg/white/løper.svg"),
+    hest: require("@/assets/svg/white/hest.svg"),
   },
   black: {
     bonde: require("@/assets/svg/black/bonde.svg"),
@@ -16,6 +17,7 @@ export const PIECE_SVGS = {
     konge: require("@/assets/svg/black/konge.svg"),
     tårn: require("@/assets/svg/black/tårn.svg"),
     løper: require("@/assets/svg/black/løper.svg"),
+    hest: require("@/assets/svg/black/hest.svg"),
   },
 };
 
@@ -28,4 +30,6 @@ export const INITIAL_POSITIONS = {
   BLACK_ROOKS: ["a12", "k12"],
   WHITE_BISHOPS: ["c1", "j1"],
   BLACK_BISHOPS: ["c12", "j12"],
+  WHITE_KNIGHTS: ["d1", "h1"],
+  BLACK_KNIGHTS: ["d12", "h12"],
 };
