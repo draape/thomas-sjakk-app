@@ -7,6 +7,7 @@ import { calculateBishopMoves } from "./pieces/bishop";
 import { calculateQueenMoves } from "./pieces/queen";
 import { calculateKingMoves } from "./pieces/king";
 import { calculateKnightMoves } from "./pieces/knight";
+import { calculateSwordMoves } from "./pieces/sword";
 
 export const createInitialBoard = (): BoardState => {
   const board: BoardState = {};
@@ -55,6 +56,14 @@ export const createInitialBoard = (): BoardState => {
     board[pos] = { type: "hest", color: "black", hasMoved: false };
   });
 
+  // Swords
+  INITIAL_POSITIONS.WHITE_SWORDS.forEach(pos => {
+    board[pos] = { type: "sverd", color: "white", hasMoved: false };
+  });
+  INITIAL_POSITIONS.BLACK_SWORDS.forEach(pos => {
+    board[pos] = { type: "sverd", color: "black", hasMoved: false };
+  });
+
   return board;
 };
 
@@ -96,6 +105,30 @@ export const isSquareUnderAttack = (
       if (attacker && attacker.type === "hest" && attacker.color === byColor) {
         return true;
       }
+    }
+  }
+
+  // Check for attacking swords (can jump over pieces, diagonal only)
+  const diagonalDirections = [
+    [-1, -1], [-1, 1],
+    [1, -1],  [1, 1],
+  ];
+
+  for (const [dRow, dCol] of diagonalDirections) {
+    let currentRow = row + dRow;
+    let currentCol = col + dCol;
+
+    // Check all squares in this diagonal direction
+    while (isValidPosition(currentRow, currentCol)) {
+      const attackPos = positionToKey(currentRow, currentCol);
+      const attacker = board[attackPos];
+
+      if (attacker && attacker.type === "sverd" && attacker.color === byColor) {
+        return true;
+      }
+
+      currentRow += dRow;
+      currentCol += dCol;
     }
   }
 
@@ -195,6 +228,9 @@ export const calculateLegalMoves = (
       break;
     case "hest":
       potentialMoves = calculateKnightMoves(board, position);
+      break;
+    case "sverd":
+      potentialMoves = calculateSwordMoves(board, position);
       break;
     default:
       return [];
