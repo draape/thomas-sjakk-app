@@ -2,7 +2,7 @@
 
 ## Oppstilling
 
-Hver spiller har to løpere. Hvite løpere starter på felt c1 og j1, svarte tårn starter på felt c12 og j12.
+Hver spiller har to løpere. Hvite løpere starter på felt c1 og j1, svarte løpere starter på felt c12 og j12.
 
 ## Flytteregler
 
