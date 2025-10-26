@@ -33,11 +33,11 @@ export const calculateKingMoves = (board: BoardState, position: string): string[
   // Filter out squares that are under attack
   const legalMoves = potentialMoves.filter((move) => {
     const tempBoard = { ...board };
+    const movingPiece = { ...piece };
+
+    // Set new position first, then delete old position (consistent with game.ts)
+    tempBoard[move] = movingPiece;
     delete tempBoard[position];
-    if (board[move]) {
-      delete tempBoard[move];
-    }
-    tempBoard[move] = piece;
 
     return !isSquareUnderAttack(tempBoard, move, opponentColor);
   });
