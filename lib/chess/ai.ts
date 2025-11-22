@@ -1,9 +1,26 @@
-import { BoardState, PieceColor, LastMove } from "./types";
+import { BoardState, PieceColor, LastMove, Piece, PieceType } from "./types";
 import { calculateLegalMoves, getAllLegalMovesForColor } from "./game";
 import { BOARD_SIZE } from "./constants";
 import { keyToPosition, positionToKey } from "./utils";
 
-export type BotDifficulty = "easy" | "medium" | "hard";
+export type BotDifficulty = "easy" | "medium" | "hard" | "pro";
+
+const PIECE_VALUES: Record<PieceType, number> = {
+  bonde: 1,
+  hest: 3,
+  løper: 3,
+  tårn: 5,
+  sverd: 6,
+  skjold: 9,
+  dronning: 9,
+  ridder: 13,
+  konge: 100,
+};
+
+const getPieceValue = (piece?: Piece): number => {
+  if (!piece) return 0;
+  return PIECE_VALUES[piece.type] ?? 0;
+};
 
 const chooseRandomMove = (
   moves: { from: string; to: string }[]
@@ -12,18 +29,18 @@ const chooseRandomMove = (
   return moves[randomIndex];
 };
 
-const isCaptureMove = (
+const getCaptureValue = (
   move: { from: string; to: string },
   board: BoardState,
   botColor: PieceColor,
   lastMove: LastMove | null
-): boolean => {
+): number => {
   const movingPiece = board[move.from];
-  if (!movingPiece) return false;
+  if (!movingPiece) return 0;
 
   const targetPiece = board[move.to];
   if (targetPiece && targetPiece.color !== botColor) {
-    return true;
+    return getPieceValue(targetPiece);
   }
 
   if (
@@ -32,7 +49,7 @@ const isCaptureMove = (
     !lastMove ||
     !lastMove.movedTwoSquares
   ) {
-    return false;
+    return 0;
   }
 
   const { row: fromRow, col: fromCol } = keyToPosition(move.from);
@@ -40,17 +57,21 @@ const isCaptureMove = (
   const isDiagonalStep =
     Math.abs(toCol - fromCol) === 1 && Math.abs(toRow - fromRow) === 1;
 
-  if (!isDiagonalStep) return false;
+  if (!isDiagonalStep) return 0;
 
   const capturedPawnKey = positionToKey(fromRow, toCol);
-  if (lastMove.to !== capturedPawnKey) return false;
+  if (lastMove.to !== capturedPawnKey) return 0;
 
   const capturedPawn = board[capturedPawnKey];
-  return (
-    !!capturedPawn &&
+  if (
+    capturedPawn &&
     capturedPawn.type === "bonde" &&
     capturedPawn.color !== botColor
-  );
+  ) {
+    return getPieceValue(capturedPawn);
+  }
+
+  return 0;
 };
 
 const simulateMove = (
@@ -91,19 +112,63 @@ const simulateMove = (
   return newBoard;
 };
 
-const doesMoveCreateThreat = (
+const getThreatValue = (
   move: { from: string; to: string },
   board: BoardState,
   botColor: PieceColor
-): boolean => {
+): number => {
   const simulatedBoard = simulateMove(board, move);
-  if (!simulatedBoard) return false;
+  if (!simulatedBoard) return 0;
 
-  const movesFromDestination = calculateLegalMoves(simulatedBoard, move.to, null);
-  return movesFromDestination.some((target) => {
+  const movesFromDestination = calculateLegalMoves(
+    simulatedBoard,
+    move.to,
+    null
+  );
+
+  let maxValue = 0;
+  for (const target of movesFromDestination) {
     const piece = simulatedBoard[target];
-    return piece && piece.color !== botColor;
-  });
+    if (piece && piece.color !== botColor) {
+      const value = getPieceValue(piece);
+      if (value > maxValue) {
+        maxValue = value;
+      }
+    }
+  }
+  return maxValue;
+};
+
+type EvaluatedMove = { move: { from: string; to: string }; value: number };
+
+const evaluateMoves = (
+  moves: { from: string; to: string }[],
+  evaluator: (move: { from: string; to: string }) => number
+): EvaluatedMove[] => {
+  return moves
+    .map((move) => ({ move, value: evaluator(move) }))
+    .filter((entry) => entry.value > 0);
+};
+
+const chooseBestValuedMove = (
+  evaluatedMoves: EvaluatedMove[]
+): { from: string; to: string } | null => {
+  if (evaluatedMoves.length === 0) return null;
+
+  let bestValue = 0;
+  const bestMoves: { from: string; to: string }[] = [];
+
+  for (const entry of evaluatedMoves) {
+    if (entry.value > bestValue) {
+      bestValue = entry.value;
+      bestMoves.length = 0;
+      bestMoves.push(entry.move);
+    } else if (entry.value === bestValue) {
+      bestMoves.push(entry.move);
+    }
+  }
+
+  return chooseRandomMove(bestMoves);
 };
 
 const selectMoveForDifficulty = (
@@ -114,17 +179,30 @@ const selectMoveForDifficulty = (
   lastMove: LastMove | null
 ) => {
   switch (difficulty) {
+    case "pro": {
+      const capturingMoves = evaluateMoves(allMoves, (move) =>
+        getCaptureValue(move, board, botColor, lastMove)
+      );
+      const bestCapture = chooseBestValuedMove(capturingMoves);
+      if (bestCapture) return bestCapture;
+
+      const threateningMoves = evaluateMoves(allMoves, (move) =>
+        getThreatValue(move, board, botColor)
+      );
+      const bestThreat = chooseBestValuedMove(threateningMoves);
+      if (bestThreat) return bestThreat;
+
+      return chooseRandomMove(allMoves);
+    }
     case "hard": {
-      const capturingMoves = allMoves.filter((move) =>
-        isCaptureMove(move, board, botColor, lastMove)
+      const capturingMoves = allMoves.filter(
+        (move) => getCaptureValue(move, board, botColor, lastMove) > 0
       );
       if (capturingMoves.length > 0) {
         return chooseRandomMove(capturingMoves);
       }
       const threateningMoves = allMoves.filter(
-        (move) =>
-          !isCaptureMove(move, board, botColor, lastMove) &&
-          doesMoveCreateThreat(move, board, botColor)
+        (move) => getThreatValue(move, board, botColor) > 0
       );
       if (threateningMoves.length > 0) {
         return chooseRandomMove(threateningMoves);
@@ -132,8 +210,8 @@ const selectMoveForDifficulty = (
       return chooseRandomMove(allMoves);
     }
     case "medium": {
-      const capturingMoves = allMoves.filter((move) =>
-        isCaptureMove(move, board, botColor, lastMove)
+      const capturingMoves = allMoves.filter(
+        (move) => getCaptureValue(move, board, botColor, lastMove) > 0
       );
       if (capturingMoves.length > 0) {
         return chooseRandomMove(capturingMoves);

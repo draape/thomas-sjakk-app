@@ -23,3 +23,17 @@
 ## Spillets slutt
 
 Spillet er slutt når kongen ikke har flere lovlige trekk. Hvis kongen er under angrep når dette skjer, vinner spilleren som angriper den andre kongen, det blir sjakk matt. Hvis kongen ikke er under angrep blir det uavgjort, sjakk patt.
+
+## Brikkenes verdi
+
+| Brikke   | Verdi |
+| -------- | ----- |
+| Bonde    | 1p    |
+| Hest     | 3p    |
+| Løper    | 3p    |
+| Tårn     | 5p    |
+| Sverd    | 6p    |
+| Skjold   | 9p    |
+| Dronning | 9p    |
+| Ridder   | 13p   |
+| Konge    | 100p  |

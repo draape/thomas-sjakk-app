@@ -1,3 +1,7 @@
 # Easy bot
 
-Easy bot er en veldig enkel motstander. Den kan ingen ting om sjakk. Det eneste den kan er hvilke trekk som er lovlige. Hver gang det blir Easy bot sin tur, tar den et trekk av seg selv, men det er helt tilfeldig hvilket trekk den tar.
+Easy bot er en veldig enkel motstander. Det kjenner til hvilke trekk som er lovlige. Hver gang det blir bot-en sin tur, tar den et trekk av seg selv.
+
+## Trekk
+
+Det er helt tilfeldig hvilket trekk den tar.

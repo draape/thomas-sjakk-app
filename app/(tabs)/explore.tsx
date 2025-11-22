@@ -65,6 +65,16 @@ const BOT_CONFIG: Record<
     description: "Prioriterer å ta eller true Thomas sine brikker.",
     badge: "🥇",
   },
+  pro: {
+    info: {
+      name: "ProBot 4000",
+      rating: 1650,
+      color: "Svart",
+      avatar: require("@/assets/images/easybot.jpg"),
+    },
+    description: "Tar eller truer de dyreste brikkene først.",
+    badge: "🏆",
+  },
 };
 
 export default function ChessBoardScreen() {

@@ -7,7 +7,7 @@ interface GameOverModalProps {
   visible: boolean;
   result: GameResult;
   onNewGame: () => void;
-  opponentDifficulty?: 'easy' | 'medium' | 'hard';
+  opponentDifficulty?: 'easy' | 'medium' | 'hard' | 'pro';
 }
 
 export function GameOverModal({ visible, result, onNewGame, opponentDifficulty = 'easy' }: GameOverModalProps) {
@@ -21,6 +21,8 @@ export function GameOverModal({ visible, result, onNewGame, opponentDifficulty =
         return '🥈'; // Silver
       case 'hard':
         return '🥇'; // Gold
+      case 'pro':
+        return '🏆'; // Trophy
       default:
         return '🥉';
     }
