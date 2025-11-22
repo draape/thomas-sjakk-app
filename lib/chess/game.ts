@@ -118,7 +118,7 @@ export const isSquareUnderAttack = (
     }
   }
 
-  // Check for attacking swords (can jump over pieces, diagonal only)
+  // Check for attacking swords (can jump over allies, diagonal only)
   const diagonalDirections = [
     [-1, -1], [-1, 1],
     [1, -1],  [1, 1],
@@ -128,13 +128,22 @@ export const isSquareUnderAttack = (
     let currentRow = row + dRow;
     let currentCol = col + dCol;
 
-    // Check all squares in this diagonal direction
     while (isValidPosition(currentRow, currentCol)) {
       const attackPos = positionToKey(currentRow, currentCol);
       const attacker = board[attackPos];
 
-      if (attacker && attacker.type === "sverd" && attacker.color === byColor) {
-        return true;
+      if (attacker) {
+        if (attacker.color === byColor) {
+          if (attacker.type === "sverd") {
+            return true;
+          }
+          // Friendly blocker: sword can jump allies, continue scanning
+          currentRow += dRow;
+          currentCol += dCol;
+          continue;
+        }
+        // Enemy piece blocks sword line
+        break;
       }
 
       currentRow += dRow;

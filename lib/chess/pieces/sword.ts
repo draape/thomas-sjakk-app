@@ -11,7 +11,7 @@ export const calculateSwordMoves = (
   const { row, col } = keyToPosition(position);
   const legalMoves: string[] = [];
 
-  // Sword moves diagonally like a bishop, but can jump over pieces
+  // Sword moves diagonally like a bishop, but can only jump over allies
   const directions = [
     [-1, -1], // up-left
     [-1, 1],  // up-right
@@ -28,14 +28,13 @@ export const calculateSwordMoves = (
       const targetKey = positionToKey(currentRow, currentCol);
       const targetPiece = board[targetKey];
 
-      // Can move to empty square or capture opponent's piece
       if (!targetPiece) {
         legalMoves.push(targetKey);
       } else if (targetPiece.color !== piece.color) {
         legalMoves.push(targetKey);
-        // Can continue jumping over pieces after capturing
+        break; // cannot move beyond opposing pieces
       }
-      // If same color piece, can't land here but can jump over it
+      // If same color, skip landing but keep scanning (jump over allies)
 
       currentRow += dRow;
       currentCol += dCol;
