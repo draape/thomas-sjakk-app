@@ -1,8 +1,9 @@
 import { BoardState, PieceColor, LastMove } from "./types";
-import { getAllLegalMovesForColor } from "./game";
+import { calculateLegalMoves, getAllLegalMovesForColor } from "./game";
+import { BOARD_SIZE } from "./constants";
 import { keyToPosition, positionToKey } from "./utils";
 
-export type BotDifficulty = "easy" | "medium";
+export type BotDifficulty = "easy" | "medium" | "hard";
 
 const chooseRandomMove = (
   moves: { from: string; to: string }[]
@@ -52,6 +53,59 @@ const isCaptureMove = (
   );
 };
 
+const simulateMove = (
+  board: BoardState,
+  move: { from: string; to: string }
+): BoardState | null => {
+  const movingPiece = board[move.from];
+  if (!movingPiece) return null;
+
+  const newBoard: BoardState = { ...board };
+  const { row: fromRow, col: fromCol } = keyToPosition(move.from);
+  const { row: toRow, col: toCol } = keyToPosition(move.to);
+  const targetPiece = board[move.to];
+
+  if (
+    movingPiece.type === "bonde" &&
+    Math.abs(toCol - fromCol) === 1 &&
+    !targetPiece
+  ) {
+    const capturedPawnKey = positionToKey(fromRow, toCol);
+    delete newBoard[capturedPawnKey];
+  }
+
+  let finalPiece = { ...movingPiece, hasMoved: true };
+  if (movingPiece.type === "bonde") {
+    const gameRow = BOARD_SIZE - toRow;
+    if (
+      (movingPiece.color === "white" && gameRow === BOARD_SIZE) ||
+      (movingPiece.color === "black" && gameRow === 1)
+    ) {
+      finalPiece = { ...finalPiece, type: "dronning" };
+    }
+  }
+
+  newBoard[move.to] = finalPiece;
+  delete newBoard[move.from];
+
+  return newBoard;
+};
+
+const doesMoveCreateThreat = (
+  move: { from: string; to: string },
+  board: BoardState,
+  botColor: PieceColor
+): boolean => {
+  const simulatedBoard = simulateMove(board, move);
+  if (!simulatedBoard) return false;
+
+  const movesFromDestination = calculateLegalMoves(simulatedBoard, move.to, null);
+  return movesFromDestination.some((target) => {
+    const piece = simulatedBoard[target];
+    return piece && piece.color !== botColor;
+  });
+};
+
 const selectMoveForDifficulty = (
   difficulty: BotDifficulty,
   allMoves: { from: string; to: string }[],
@@ -60,6 +114,23 @@ const selectMoveForDifficulty = (
   lastMove: LastMove | null
 ) => {
   switch (difficulty) {
+    case "hard": {
+      const capturingMoves = allMoves.filter((move) =>
+        isCaptureMove(move, board, botColor, lastMove)
+      );
+      if (capturingMoves.length > 0) {
+        return chooseRandomMove(capturingMoves);
+      }
+      const threateningMoves = allMoves.filter(
+        (move) =>
+          !isCaptureMove(move, board, botColor, lastMove) &&
+          doesMoveCreateThreat(move, board, botColor)
+      );
+      if (threateningMoves.length > 0) {
+        return chooseRandomMove(threateningMoves);
+      }
+      return chooseRandomMove(allMoves);
+    }
     case "medium": {
       const capturingMoves = allMoves.filter((move) =>
         isCaptureMove(move, board, botColor, lastMove)

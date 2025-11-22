@@ -118,7 +118,7 @@ export const isSquareUnderAttack = (
     }
   }
 
-  // Check for attacking swords (can jump over allies, diagonal only)
+  // Check for attacking swords (can jump over allies, not enemies)
   const diagonalDirections = [
     [-1, -1], [-1, 1],
     [1, -1],  [1, 1],
@@ -137,12 +137,12 @@ export const isSquareUnderAttack = (
           if (attacker.type === "sverd") {
             return true;
           }
-          // Friendly blocker: sword can jump allies, continue scanning
+          // Friendly blockers can be jumped, keep scanning
           currentRow += dRow;
           currentCol += dCol;
           continue;
         }
-        // Enemy piece blocks sword line
+        // Enemy piece between sword and king stops the line
         break;
       }
 

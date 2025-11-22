@@ -55,6 +55,16 @@ const BOT_CONFIG: Record<
     description: "Tar brikker når det er mulig, ellers tilfeldig trekk.",
     badge: "🥈",
   },
+  hard: {
+    info: {
+      name: "HardBot 3000",
+      rating: 1500,
+      color: "Svart",
+      avatar: require("@/assets/images/easybot.jpg"),
+    },
+    description: "Prioriterer å ta eller true Thomas sine brikker.",
+    badge: "🥇",
+  },
 };
 
 export default function ChessBoardScreen() {
@@ -172,10 +182,10 @@ export default function ChessBoardScreen() {
     }
   }, [currentPlayer, executeBotMove, isBotSelectionVisible]);
 
-  const handleNewGame = () => {
-    setGameStatus("ongoing");
+  const handleNewGame = useCallback(() => {
+    resetBoardState();
     setIsBotSelectionVisible(true);
-  };
+  }, [resetBoardState]);
 
   const handleSquarePress = (row: number, col: number) => {
     if (isBotSelectionVisible) return;
