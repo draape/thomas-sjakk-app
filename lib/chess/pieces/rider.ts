@@ -11,7 +11,7 @@ export const calculateRiderMoves = (
   const { row, col } = keyToPosition(position);
   const legalMoves: string[] = [];
 
-  // Rider moves in all directions (horizontal, vertical, and diagonal), can jump over pieces
+  // Rider moves in all directions (horizontal, vertical, and diagonal), can jump over allies only
   const directions = [
     [-1, -1], [-1, 0], [-1, 1], // up-left, up, up-right
     [0, -1],           [0, 1],  // left, right

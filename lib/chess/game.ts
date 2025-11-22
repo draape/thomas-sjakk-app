@@ -166,7 +166,7 @@ export const isSquareUnderAttack = (
     }
   }
 
-  // Check for attacking riders (can jump over pieces, all directions)
+  // Check for attacking riders (can jump over allies, not enemies)
   const allRiderDirections = [
     [-1, -1], [-1, 0], [-1, 1],
     [0, -1],           [0, 1],
@@ -177,13 +177,22 @@ export const isSquareUnderAttack = (
     let currentRow = row + dRow;
     let currentCol = col + dCol;
 
-    // Check all squares in this direction
     while (isValidPosition(currentRow, currentCol)) {
       const attackPos = positionToKey(currentRow, currentCol);
       const attacker = board[attackPos];
 
-      if (attacker && attacker.type === "ridder" && attacker.color === byColor) {
-        return true;
+      if (attacker) {
+        if (attacker.color === byColor) {
+          if (attacker.type === "ridder") {
+            return true;
+          }
+          // Friendly blocker: rider can jump over, continue scanning
+          currentRow += dRow;
+          currentCol += dCol;
+          continue;
+        }
+        // Enemy piece blocks rider line of attack
+        break;
       }
 
       currentRow += dRow;
