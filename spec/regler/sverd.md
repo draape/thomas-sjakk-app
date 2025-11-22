@@ -6,7 +6,7 @@ Hver spiller har to sverd. Hvite sverd starter på felt b1 og i1, svarte sverd s
 
 ## Flytteregler
 
-- Sverd kan flytte flere felter om gangen, og kan hoppe over andre brikker.
+- Sverd kan flytte flere felter om gangen, og kan hoppe over egne brikker, men ikke motstanderens.
 - Den kan flytte diagonalt, likt som løperen.
 - Sverd kan ikke gå til et felt hvor det står en brikke med samme farge.
 

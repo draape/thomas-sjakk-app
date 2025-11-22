@@ -1,7 +1,8 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { SafeAreaView, StyleSheet, TouchableOpacity, View } from "react-native";
 
 import { GameOverModal } from "@/components/game-over-modal";
+import { BotSelectionModal } from "@/components/bot-selection-modal";
 import { ThemedText } from "@/components/themed-text";
 import { ChessBoard } from "@/components/chess/ChessBoard";
 import { PlayerInfo } from "@/components/chess/PlayerInfo";
@@ -18,7 +19,7 @@ import {
   calculateLegalMoves, 
   checkGameStatus
 } from "@/lib/chess/game";
-import { makeBotMove } from "@/lib/chess/ai";
+import { makeBotMove, BotDifficulty } from "@/lib/chess/ai";
 import { positionToKey, keyToPosition } from "@/lib/chess/utils";
 import { BOARD_SIZE } from "@/lib/chess/constants";
 
@@ -30,11 +31,30 @@ const player: PlayerInfoType = {
   avatar: require("@/assets/images/thomas.jpg"),
 };
 
-const opponent: PlayerInfoType = {
-  name: "EasyBot 1000",
-  rating: 1200,
-  color: "Svart",
-  avatar: require("@/assets/images/easybot.jpg"),
+const BOT_CONFIG: Record<
+  BotDifficulty,
+  { info: PlayerInfoType; description: string; badge: string }
+> = {
+  easy: {
+    info: {
+      name: "EasyBot 1000",
+      rating: 1200,
+      color: "Svart",
+      avatar: require("@/assets/images/easybot.jpg"),
+    },
+    description: "Velg dette for helt tilfeldige trekk.",
+    badge: "🥉",
+  },
+  medium: {
+    info: {
+      name: "MediumBot 2000",
+      rating: 1350,
+      color: "Svart",
+      avatar: require("@/assets/images/easybot.jpg"),
+    },
+    description: "Tar brikker når det er mulig, ellers tilfeldig trekk.",
+    badge: "🥈",
+  },
 };
 
 export default function ChessBoardScreen() {
@@ -45,11 +65,54 @@ export default function ChessBoardScreen() {
   const [currentPlayer, setCurrentPlayer] = useState<PieceColor>("white");
   const [lastMove, setLastMove] = useState<LastMove | null>(null);
   const [gameStatus, setGameStatus] = useState<GameStatus>("ongoing");
+  const [opponentDifficulty, setOpponentDifficulty] =
+    useState<BotDifficulty>("easy");
+  const [isBotSelectionVisible, setIsBotSelectionVisible] = useState(true);
+
+  const opponent = useMemo(
+    () => BOT_CONFIG[opponentDifficulty].info,
+    [opponentDifficulty]
+  );
+
+  const botSelectionOptions = useMemo(
+    () =>
+      Object.entries(BOT_CONFIG).map(([difficulty, config]) => ({
+        difficulty: difficulty as BotDifficulty,
+        title: config.info.name,
+        description: config.description,
+        badge: config.badge,
+      })),
+    []
+  );
+
+  const resetBoardState = useCallback(() => {
+    setBoard(createInitialBoard());
+    setSelectedSquare(null);
+    setLegalMoves([]);
+    setAttackedSquares([]);
+    setCurrentPlayer("white");
+    setLastMove(null);
+    setGameStatus("ongoing");
+  }, []);
+
+  const startGameWithDifficulty = useCallback(
+    (difficulty: BotDifficulty) => {
+      setOpponentDifficulty(difficulty);
+      resetBoardState();
+      setIsBotSelectionVisible(false);
+    },
+    [resetBoardState]
+  );
 
   // Bot makes a move
   const executeBotMove = useCallback(() => {
     const botColor: PieceColor = "black";
-    const botMoveResult = makeBotMove(board, botColor, lastMove);
+    const botMoveResult = makeBotMove(
+      board,
+      botColor,
+      lastMove,
+      opponentDifficulty
+    );
 
     if (!botMoveResult) return;
 
@@ -97,29 +160,26 @@ export default function ChessBoardScreen() {
     const status = checkGameStatus(newBoard, "white", newLastMove);
     setGameStatus(status);
     setCurrentPlayer("white");
-  }, [board, lastMove]);
+  }, [board, lastMove, opponentDifficulty]);
 
   // Trigger bot move when it's bot's turn
   useEffect(() => {
-    if (currentPlayer === "black") {
+    if (currentPlayer === "black" && !isBotSelectionVisible) {
       const timeout = setTimeout(() => {
         executeBotMove();
       }, 500);
       return () => clearTimeout(timeout);
     }
-  }, [currentPlayer, executeBotMove]);
+  }, [currentPlayer, executeBotMove, isBotSelectionVisible]);
 
   const handleNewGame = () => {
-    setBoard(createInitialBoard());
-    setSelectedSquare(null);
-    setLegalMoves([]);
-    setAttackedSquares([]);
-    setCurrentPlayer("white");
-    setLastMove(null);
     setGameStatus("ongoing");
+    setIsBotSelectionVisible(true);
   };
 
   const handleSquarePress = (row: number, col: number) => {
+    if (isBotSelectionVisible) return;
+
     const key = positionToKey(row, col);
     const piece = board[key];
 
@@ -237,6 +297,7 @@ export default function ChessBoardScreen() {
   };
 
   const gameResult = getGameResult();
+  const showGameOver = gameResult !== null && !isBotSelectionVisible;
 
   return (
     <SafeAreaView style={styles.container}>
@@ -262,10 +323,15 @@ export default function ChessBoardScreen() {
       <PlayerInfo player={player} />
 
       <GameOverModal
-        visible={gameResult !== null}
+        visible={showGameOver}
         result={gameResult || "draw"}
         onNewGame={handleNewGame}
-        opponentDifficulty="easy"
+        opponentDifficulty={opponentDifficulty}
+      />
+      <BotSelectionModal
+        visible={isBotSelectionVisible}
+        options={botSelectionOptions}
+        onSelect={startGameWithDifficulty}
       />
     </SafeAreaView>
   );
