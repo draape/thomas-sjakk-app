@@ -11,6 +11,8 @@ export const PIECE_SVGS = {
     løper: require("@/assets/svg/white/løper.svg"),
     hest: require("@/assets/svg/white/hest.svg"),
     sverd: require("@/assets/svg/white/sverd.svg"),
+    skjold: require("@/assets/svg/white/skjold.svg"),
+    ridder: require("@/assets/svg/white/motstander.svg"),
   },
   black: {
     bonde: require("@/assets/svg/black/bonde.svg"),
@@ -20,6 +22,8 @@ export const PIECE_SVGS = {
     løper: require("@/assets/svg/black/løper.svg"),
     hest: require("@/assets/svg/black/hest.svg"),
     sverd: require("@/assets/svg/black/sverd.svg"),
+    skjold: require("@/assets/svg/black/skjold.svg"),
+    ridder: require("@/assets/svg/black/motstander.svg"),
   },
 };
 
@@ -36,4 +40,8 @@ export const INITIAL_POSITIONS = {
   BLACK_KNIGHTS: ["d12", "h12"],
   WHITE_SWORDS: ["b1", "i1"],
   BLACK_SWORDS: ["b12", "i12"],
+  WHITE_SHIELD: "l1",
+  BLACK_SHIELD: "l12",
+  WHITE_RIDER: "e1",
+  BLACK_RIDER: "e12",
 };

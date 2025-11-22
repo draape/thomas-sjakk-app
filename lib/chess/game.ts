@@ -8,6 +8,8 @@ import { calculateQueenMoves } from "./pieces/queen";
 import { calculateKingMoves } from "./pieces/king";
 import { calculateKnightMoves } from "./pieces/knight";
 import { calculateSwordMoves } from "./pieces/sword";
+import { calculateShieldMoves } from "./pieces/shield";
+import { calculateRiderMoves } from "./pieces/rider";
 
 export const createInitialBoard = (): BoardState => {
   const board: BoardState = {};
@@ -63,6 +65,14 @@ export const createInitialBoard = (): BoardState => {
   INITIAL_POSITIONS.BLACK_SWORDS.forEach(pos => {
     board[pos] = { type: "sverd", color: "black", hasMoved: false };
   });
+
+  // Shields
+  board[INITIAL_POSITIONS.WHITE_SHIELD] = { type: "skjold", color: "white", hasMoved: false };
+  board[INITIAL_POSITIONS.BLACK_SHIELD] = { type: "skjold", color: "black", hasMoved: false };
+
+  // Riders
+  board[INITIAL_POSITIONS.WHITE_RIDER] = { type: "ridder", color: "white", hasMoved: false };
+  board[INITIAL_POSITIONS.BLACK_RIDER] = { type: "ridder", color: "black", hasMoved: false };
 
   return board;
 };
@@ -124,6 +134,55 @@ export const isSquareUnderAttack = (
       const attacker = board[attackPos];
 
       if (attacker && attacker.type === "sverd" && attacker.color === byColor) {
+        return true;
+      }
+
+      currentRow += dRow;
+      currentCol += dCol;
+    }
+  }
+
+  // Check for attacking shields (can jump over pieces, horizontal/vertical only)
+  const orthogonalDirections = [
+    [-1, 0], [1, 0],  // up, down
+    [0, -1], [0, 1],  // left, right
+  ];
+
+  for (const [dRow, dCol] of orthogonalDirections) {
+    let currentRow = row + dRow;
+    let currentCol = col + dCol;
+
+    // Check all squares in this direction
+    while (isValidPosition(currentRow, currentCol)) {
+      const attackPos = positionToKey(currentRow, currentCol);
+      const attacker = board[attackPos];
+
+      if (attacker && attacker.type === "skjold" && attacker.color === byColor) {
+        return true;
+      }
+
+      currentRow += dRow;
+      currentCol += dCol;
+    }
+  }
+
+  // Check for attacking riders (can jump over pieces, all directions)
+  const allRiderDirections = [
+    [-1, -1], [-1, 0], [-1, 1],
+    [0, -1],           [0, 1],
+    [1, -1],  [1, 0],  [1, 1],
+  ];
+
+  for (const [dRow, dCol] of allRiderDirections) {
+    let currentRow = row + dRow;
+    let currentCol = col + dCol;
+
+    // Check all squares in this direction
+    while (isValidPosition(currentRow, currentCol)) {
+      const attackPos = positionToKey(currentRow, currentCol);
+      const attacker = board[attackPos];
+
+      if (attacker && attacker.type === "ridder" && attacker.color === byColor) {
         return true;
       }
 
@@ -231,6 +290,12 @@ export const calculateLegalMoves = (
       break;
     case "sverd":
       potentialMoves = calculateSwordMoves(board, position);
+      break;
+    case "skjold":
+      potentialMoves = calculateShieldMoves(board, position);
+      break;
+    case "ridder":
+      potentialMoves = calculateRiderMoves(board, position);
       break;
     default:
       return [];
