@@ -1,15 +1,14 @@
 import { Image } from "expo-image";
 import { ScrollView, StyleSheet, View } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 import { ThemedText } from "@/components/themed-text";
-import { ThemedView } from "@/components/themed-view";
 import { useGameHistory } from "@/hooks/use-game-history";
+import { useThemeColor } from "@/hooks/use-theme-color";
+import { useRating } from "@/hooks/use-rating";
 import { BOT_CONFIG } from "@/lib/chess/bots";
 import { formatPlayedAt } from "@/lib/history/format";
 import { GameRecord, MatchOutcome } from "@/lib/history/types";
-
-const CURRENT_RATING = 1450;
-const PEAK_RATING = 1650;
 
 const RESULT_META: Record<
   MatchOutcome,
@@ -25,7 +24,7 @@ function HistoryCard({ entry }: { entry: GameRecord }) {
   const result = RESULT_META[entry.result];
 
   return (
-    <ThemedView style={styles.historyCard}>
+    <View style={styles.historyCard}>
       <View style={styles.avatarWrapper}>
         {config ? (
           <Image source={config.info.avatar} style={styles.avatar} />
@@ -46,21 +45,47 @@ function HistoryCard({ entry }: { entry: GameRecord }) {
           {formatPlayedAt(entry.playedAt)}
         </ThemedText>
       </View>
-    </ThemedView>
+    </View>
   );
 }
 
 export default function HomeScreen() {
   const { history } = useGameHistory();
+  const { current, peak } = useRating();
+  const backgroundColor = useThemeColor({}, "background");
+
+  const currentLabel = current === null ? "-" : String(current);
+  const peakLabel = peak === null ? "-" : String(peak);
 
   return (
-    <ThemedView style={styles.container}>
+    <SafeAreaView
+      style={[styles.safeArea, { backgroundColor }]}
+      edges={["top", "left", "right"]}
+    >
       <ScrollView contentContainerStyle={styles.scrollContent}>
-        <ThemedView style={styles.titleContainer}>
-          <ThemedText type="title">Velkommen til Thomas-sjakk!</ThemedText>
-        </ThemedView>
+        <View style={styles.titleContainer}>
+          <ThemedText type="title" style={styles.title}>
+            Velkommen til{"\n"}Thomas-sjakk!
+          </ThemedText>
+        </View>
 
-        <ThemedView style={styles.historyContainer}>
+        <View style={styles.ratingContainer}>
+          <View style={styles.ratingStats}>
+            <View style={styles.ratingStat}>
+              <ThemedText style={styles.ratingLabel}>Nå</ThemedText>
+              <ThemedText style={styles.ratingValue}>
+                {currentLabel}
+              </ThemedText>
+            </View>
+            <View style={styles.ratingDivider} />
+            <View style={styles.ratingStat}>
+              <ThemedText style={styles.ratingLabel}>Rekord</ThemedText>
+              <ThemedText style={styles.ratingValue}>{peakLabel}</ThemedText>
+            </View>
+          </View>
+        </View>
+
+        <View style={styles.historyContainer}>
           <ThemedText type="subtitle" style={styles.sectionTitle}>
             Spillhistorikk 📜
           </ThemedText>
@@ -76,81 +101,101 @@ export default function HomeScreen() {
               ))}
             </View>
           )}
-        </ThemedView>
-
-        <ThemedView style={styles.ratingContainer}>
-          <ThemedText type="subtitle" style={styles.sectionTitle}>
-            Din Rating
-          </ThemedText>
-          <View style={styles.ratingStats}>
-            <View style={styles.ratingStat}>
-              <ThemedText style={styles.ratingLabel}>Nå</ThemedText>
-              <ThemedText style={styles.ratingValue}>
-                {CURRENT_RATING}
-              </ThemedText>
-            </View>
-            <View style={styles.ratingDivider} />
-            <View style={styles.ratingStat}>
-              <ThemedText style={styles.ratingLabel}>Rekord</ThemedText>
-              <ThemedText style={styles.ratingValue}>{PEAK_RATING}</ThemedText>
-            </View>
-          </View>
-        </ThemedView>
+        </View>
       </ScrollView>
-    </ThemedView>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  safeArea: {
     flex: 1,
   },
   scrollContent: {
-    padding: 32,
-    paddingBottom: 64,
+    paddingHorizontal: 24,
+    paddingTop: 16,
+    paddingBottom: 32,
   },
   titleContainer: {
-    alignItems: "center",
     marginBottom: 24,
   },
+  title: {
+    lineHeight: 38,
+  },
+  ratingContainer: {
+    marginBottom: 24,
+    paddingVertical: 20,
+    borderRadius: 16,
+    backgroundColor: "rgba(0, 0, 0, 0.04)",
+  },
+  ratingStats: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 24,
+  },
+  ratingStat: {
+    alignItems: "center",
+    gap: 4,
+    minWidth: 120,
+  },
+  ratingLabel: {
+    fontSize: 14,
+    opacity: 0.6,
+    textTransform: "uppercase",
+    letterSpacing: 1,
+  },
+  ratingValue: {
+    fontSize: 40,
+    fontWeight: "bold",
+    lineHeight: 48,
+  },
+  ratingDivider: {
+    width: 1,
+    height: 56,
+    backgroundColor: "rgba(0, 0, 0, 0.15)",
+  },
   historyContainer: {
-    marginTop: 8,
-    gap: 16,
+    gap: 12,
   },
   sectionTitle: {
-    marginBottom: 8,
+    marginBottom: 4,
   },
   historyList: {
     gap: 12,
   },
   historyCard: {
     flexDirection: "row",
-    padding: 16,
+    padding: 12,
     borderRadius: 12,
-    gap: 16,
-    backgroundColor: "rgba(0, 0, 0, 0.05)",
+    gap: 14,
+    backgroundColor: "rgba(0, 0, 0, 0.04)",
     alignItems: "center",
   },
   avatarWrapper: {
-    width: 56,
-    height: 56,
+    width: 52,
+    height: 52,
     justifyContent: "center",
     alignItems: "center",
     position: "relative",
   },
   avatar: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+    width: 52,
+    height: 52,
+    borderRadius: 26,
   },
   avatarFallback: {
     fontSize: 32,
   },
   badge: {
     position: "absolute",
-    bottom: -4,
-    right: -4,
-    fontSize: 20,
+    bottom: -2,
+    right: -2,
+    fontSize: 18,
+    backgroundColor: "#fff",
+    borderRadius: 10,
+    paddingHorizontal: 2,
+    overflow: "hidden",
   },
   historyInfo: {
     flex: 1,
@@ -158,7 +203,7 @@ const styles = StyleSheet.create({
   },
   historyDetail: {
     fontSize: 12,
-    opacity: 0.7,
+    opacity: 0.6,
   },
   resultText: {
     fontSize: 14,
@@ -168,35 +213,6 @@ const styles = StyleSheet.create({
   emptyState: {
     textAlign: "center",
     opacity: 0.6,
-    paddingVertical: 24,
-  },
-  ratingContainer: {
-    marginTop: 32,
-    gap: 16,
-    alignItems: "center",
-    paddingVertical: 8,
-  },
-  ratingStats: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 32,
-  },
-  ratingStat: {
-    alignItems: "center",
-    gap: 8,
-  },
-  ratingLabel: {
-    fontSize: 16,
-    opacity: 0.7,
-  },
-  ratingValue: {
-    fontSize: 48,
-    fontWeight: "bold",
-    lineHeight: 56,
-  },
-  ratingDivider: {
-    width: 1,
-    height: 60,
-    backgroundColor: "rgba(0, 0, 0, 0.2)",
+    paddingVertical: 32,
   },
 });
