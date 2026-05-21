@@ -1,5 +1,6 @@
 import { StyleSheet, View, Modal, TouchableOpacity } from 'react-native';
 import { ThemedText } from '@/components/themed-text';
+import { BotDifficulty } from '@/lib/chess/ai';
 
 type GameResult = 'win' | 'loss' | 'draw';
 
@@ -7,7 +8,7 @@ interface GameOverModalProps {
   visible: boolean;
   result: GameResult;
   onNewGame: () => void;
-  opponentDifficulty?: 'easy' | 'medium' | 'hard' | 'pro';
+  opponentDifficulty?: BotDifficulty;
 }
 
 export function GameOverModal({ visible, result, onNewGame, opponentDifficulty = 'easy' }: GameOverModalProps) {
@@ -23,6 +24,8 @@ export function GameOverModal({ visible, result, onNewGame, opponentDifficulty =
         return '🥇'; // Gold
       case 'pro':
         return '🏆'; // Trophy
+      case 'super':
+        return '💎'; // Diamond
       default:
         return '🥉';
     }

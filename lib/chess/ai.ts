@@ -3,7 +3,7 @@ import { calculateLegalMoves, getAllLegalMovesForColor } from "./game";
 import { BOARD_SIZE } from "./constants";
 import { keyToPosition, positionToKey } from "./utils";
 
-export type BotDifficulty = "easy" | "medium" | "hard" | "pro";
+export type BotDifficulty = "easy" | "medium" | "hard" | "pro" | "super";
 
 const PIECE_VALUES: Record<PieceType, number> = {
   bonde: 1,
@@ -112,6 +112,71 @@ const simulateMove = (
   return newBoard;
 };
 
+const createSimulatedLastMove = (
+  move: { from: string; to: string },
+  movingPiece: Piece
+): LastMove => {
+  const { row: fromRow } = keyToPosition(move.from);
+  const { row: toRow } = keyToPosition(move.to);
+  const movedTwoSquares =
+    movingPiece.type === "bonde" && Math.abs(toRow - fromRow) === 2;
+
+  return {
+    from: move.from,
+    to: move.to,
+    movedTwoSquares,
+  };
+};
+
+const getMoveRiskValue = (
+  move: { from: string; to: string },
+  board: BoardState,
+  botColor: PieceColor
+): number => {
+  const movingPiece = board[move.from];
+  if (!movingPiece) return 0;
+
+  const simulatedBoard = simulateMove(board, move);
+  if (!simulatedBoard) return 0;
+
+  const finalPiece = simulatedBoard[move.to];
+  if (!finalPiece) return 0;
+
+  const opponentColor: PieceColor = botColor === "white" ? "black" : "white";
+  const simulatedLastMove = createSimulatedLastMove(move, movingPiece);
+  const opponentMoves = getAllLegalMovesForColor(
+    simulatedBoard,
+    opponentColor,
+    simulatedLastMove
+  );
+
+  const canBeCaptured = opponentMoves.some(
+    (opponentMove) => opponentMove.to === move.to
+  );
+
+  return canBeCaptured ? getPieceValue(finalPiece) : 0;
+};
+
+const isMoveAcceptableForSuper = (
+  move: { from: string; to: string },
+  board: BoardState,
+  botColor: PieceColor,
+  lastMove: LastMove | null
+): boolean => {
+  const movingPiece = board[move.from];
+  if (!movingPiece) {
+    return false;
+  }
+
+  const riskValue = getMoveRiskValue(move, board, botColor);
+  if (riskValue === 0) {
+    return true;
+  }
+
+  const captureValue = getCaptureValue(move, board, botColor, lastMove);
+  return captureValue >= riskValue;
+};
+
 const getThreatValue = (
   move: { from: string; to: string },
   board: BoardState,
@@ -179,6 +244,29 @@ const selectMoveForDifficulty = (
   lastMove: LastMove | null
 ) => {
   switch (difficulty) {
+    case "super": {
+      const acceptableMoves = allMoves.filter((move) =>
+        isMoveAcceptableForSuper(move, board, botColor, lastMove)
+      );
+
+      const capturingMoves = evaluateMoves(acceptableMoves, (move) =>
+        getCaptureValue(move, board, botColor, lastMove)
+      );
+      const bestCapture = chooseBestValuedMove(capturingMoves);
+      if (bestCapture) return bestCapture;
+
+      const threateningMoves = evaluateMoves(acceptableMoves, (move) =>
+        getThreatValue(move, board, botColor)
+      );
+      const bestThreat = chooseBestValuedMove(threateningMoves);
+      if (bestThreat) return bestThreat;
+
+      if (acceptableMoves.length > 0) {
+        return chooseRandomMove(acceptableMoves);
+      }
+
+      return chooseRandomMove(allMoves);
+    }
     case "pro": {
       const capturingMoves = evaluateMoves(allMoves, (move) =>
         getCaptureValue(move, board, botColor, lastMove)

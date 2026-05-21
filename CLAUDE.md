@@ -72,3 +72,7 @@ The chess game logic is implemented entirely in `app/(tabs)/explore.tsx` as a si
 - No external chess libraries - custom implementation
 - Norwegian language used in UI and documentation
 - All game logic contained in single explore.tsx file for simplicity
+
+## Verify new functionality
+
+This is the fun part for our testers! All visual testing will be done manually. To verify the code output, always run `npm run lint`. No other verification is needed.

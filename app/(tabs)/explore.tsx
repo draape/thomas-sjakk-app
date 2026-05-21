@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { SafeAreaView, StyleSheet, TouchableOpacity, View } from "react-native";
 
 import { GameOverModal } from "@/components/game-over-modal";
@@ -6,20 +6,22 @@ import { BotSelectionModal } from "@/components/bot-selection-modal";
 import { ThemedText } from "@/components/themed-text";
 import { ChessBoard } from "@/components/chess/ChessBoard";
 import { PlayerInfo } from "@/components/chess/PlayerInfo";
+import { useGameHistory } from "@/hooks/use-game-history";
 
-import { 
-  BoardState, 
-  PieceColor, 
-  GameStatus, 
+import {
+  BoardState,
+  PieceColor,
+  GameStatus,
   LastMove,
-  PlayerInfo as PlayerInfoType 
+  PlayerInfo as PlayerInfoType,
 } from "@/lib/chess/types";
-import { 
-  createInitialBoard, 
-  calculateLegalMoves, 
-  checkGameStatus
+import {
+  createInitialBoard,
+  calculateLegalMoves,
+  checkGameStatus,
 } from "@/lib/chess/game";
 import { makeBotMove, BotDifficulty } from "@/lib/chess/ai";
+import { BOT_CONFIG, BOT_ORDER } from "@/lib/chess/bots";
 import { positionToKey, keyToPosition } from "@/lib/chess/utils";
 import { BOARD_SIZE } from "@/lib/chess/constants";
 
@@ -29,52 +31,6 @@ const player: PlayerInfoType = {
   rating: 1450,
   color: "Hvit",
   avatar: require("@/assets/images/thomas.jpg"),
-};
-
-const BOT_CONFIG: Record<
-  BotDifficulty,
-  { info: PlayerInfoType; description: string; badge: string }
-> = {
-  easy: {
-    info: {
-      name: "EasyBot 1000",
-      rating: 1200,
-      color: "Svart",
-      avatar: require("@/assets/images/easybot.jpg"),
-    },
-    description: "Velg dette for helt tilfeldige trekk.",
-    badge: "🥉",
-  },
-  medium: {
-    info: {
-      name: "MediumBot 2000",
-      rating: 1350,
-      color: "Svart",
-      avatar: require("@/assets/images/easybot.jpg"),
-    },
-    description: "Tar brikker når det er mulig, ellers tilfeldig trekk.",
-    badge: "🥈",
-  },
-  hard: {
-    info: {
-      name: "HardBot 3000",
-      rating: 1500,
-      color: "Svart",
-      avatar: require("@/assets/images/easybot.jpg"),
-    },
-    description: "Prioriterer å ta eller true Thomas sine brikker.",
-    badge: "🥇",
-  },
-  pro: {
-    info: {
-      name: "ProBot 4000",
-      rating: 1650,
-      color: "Svart",
-      avatar: require("@/assets/images/easybot.jpg"),
-    },
-    description: "Tar eller truer de dyreste brikkene først.",
-    badge: "🏆",
-  },
 };
 
 export default function ChessBoardScreen() {
@@ -89,6 +45,10 @@ export default function ChessBoardScreen() {
     useState<BotDifficulty>("easy");
   const [isBotSelectionVisible, setIsBotSelectionVisible] = useState(true);
 
+  const { addGame } = useGameHistory();
+  const gameInstanceIdRef = useRef(0);
+  const recordedGameRef = useRef<number | null>(null);
+
   const opponent = useMemo(
     () => BOT_CONFIG[opponentDifficulty].info,
     [opponentDifficulty]
@@ -96,12 +56,15 @@ export default function ChessBoardScreen() {
 
   const botSelectionOptions = useMemo(
     () =>
-      Object.entries(BOT_CONFIG).map(([difficulty, config]) => ({
-        difficulty: difficulty as BotDifficulty,
-        title: config.info.name,
-        description: config.description,
-        badge: config.badge,
-      })),
+      BOT_ORDER.map((difficulty) => {
+        const config = BOT_CONFIG[difficulty];
+        return {
+          difficulty,
+          title: config.info.name,
+          description: config.description,
+          badge: config.badge,
+        };
+      }),
     []
   );
 
@@ -113,6 +76,8 @@ export default function ChessBoardScreen() {
     setCurrentPlayer("white");
     setLastMove(null);
     setGameStatus("ongoing");
+    gameInstanceIdRef.current += 1;
+    recordedGameRef.current = null;
   }, []);
 
   const startGameWithDifficulty = useCallback(
@@ -191,6 +156,36 @@ export default function ChessBoardScreen() {
       return () => clearTimeout(timeout);
     }
   }, [currentPlayer, executeBotMove, isBotSelectionVisible]);
+
+  useEffect(() => {
+    if (gameStatus === "ongoing" || isBotSelectionVisible) return;
+    const gameId = gameInstanceIdRef.current;
+    if (recordedGameRef.current === gameId) return;
+
+    let result: "win" | "loss" | "draw";
+    if (gameStatus === "stalemate") {
+      result = "draw";
+    } else if (gameStatus === "checkmate") {
+      result = currentPlayer === "white" ? "loss" : "win";
+    } else {
+      return;
+    }
+
+    recordedGameRef.current = gameId;
+    const cfg = BOT_CONFIG[opponentDifficulty];
+    addGame({
+      opponentDifficulty,
+      opponentName: cfg.info.name,
+      opponentRating: cfg.info.rating,
+      result,
+    });
+  }, [
+    gameStatus,
+    isBotSelectionVisible,
+    currentPlayer,
+    opponentDifficulty,
+    addGame,
+  ]);
 
   const handleNewGame = useCallback(() => {
     resetBoardState();
