@@ -1,6 +1,7 @@
 export const BOARD_SIZE = 12;
-export const LIGHT_COLOR = "#ebebd0";
-export const DARK_COLOR = "#7f9459";
+// v0 board tokens (board-light / board-dark).
+export const LIGHT_COLOR = "#ECEDD7";
+export const DARK_COLOR = "#69945F";
 
 export const PIECE_SVGS = {
   white: {

@@ -1,40 +1,60 @@
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { Tabs } from 'expo-router';
 import React from 'react';
-import { Text } from 'react-native';
 
 import { HapticTab } from '@/components/haptic-tab';
-import { Colors } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { FontFamily, Palette, Radius } from '@/constants/theme';
 
 export default function TabLayout() {
-  const colorScheme = useColorScheme();
-
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: Colors[colorScheme ?? 'light'].tint,
         headerShown: false,
         tabBarButton: HapticTab,
+        tabBarActiveTintColor: Palette.primary,
+        tabBarInactiveTintColor: Palette.mutedForeground,
+        tabBarActiveBackgroundColor: Palette.primarySoft,
+        tabBarLabelStyle: {
+          fontFamily: FontFamily.bodyBold,
+          fontSize: 13,
+        },
+        tabBarStyle: {
+          backgroundColor: Palette.card,
+          borderTopColor: Palette.border,
+          borderTopWidth: 1,
+          paddingTop: 8,
+        },
+        tabBarItemStyle: {
+          borderRadius: Radius['2xl'],
+          marginHorizontal: 6,
+          marginVertical: 6,
+        },
       }}>
       <Tabs.Screen
         name="index"
         options={{
-          title: 'Home',
-          tabBarIcon: ({ color }) => <Text style={{ color, fontSize: 28 }}>🏠</Text>,
+          title: 'Hjem',
+          tabBarIcon: ({ color }) => (
+            <Ionicons name="home-outline" size={26} color={color} />
+          ),
         }}
       />
       <Tabs.Screen
         name="explore"
         options={{
           title: 'Spillbrett',
-          tabBarIcon: ({ color }) => <Text style={{ color, fontSize: 28 }}>♟️</Text>,
+          tabBarIcon: ({ color }) => (
+            <MaterialCommunityIcons name="checkerboard" size={26} color={color} />
+          ),
         }}
       />
       <Tabs.Screen
         name="rules"
         options={{
           title: 'Hvordan spille',
-          tabBarIcon: ({ color }) => <Text style={{ color, fontSize: 28 }}>📖</Text>,
+          tabBarIcon: ({ color }) => (
+            <Ionicons name="book-outline" size={26} color={color} />
+          ),
         }}
       />
     </Tabs>

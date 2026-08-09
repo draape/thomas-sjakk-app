@@ -1,10 +1,17 @@
 import { BotDifficulty } from "@/lib/chess/ai";
 import { PlayerInfo } from "@/lib/chess/types";
 
+export type BadgeKind = "bronze" | "silver" | "gold" | "trophy" | "gem";
+
 export interface BotConfigEntry {
   info: PlayerInfo;
   description: string;
+  /** Emoji fallback badge (used where a full icon badge is not rendered). */
   badge: string;
+  /** Medal/icon badge kind shown next to the bot. */
+  badgeKind: BadgeKind;
+  /** Difficulty 1-5, drives the level pips. */
+  difficulty: number;
 }
 
 export const BOT_CONFIG: Record<BotDifficulty, BotConfigEntry> = {
@@ -17,6 +24,8 @@ export const BOT_CONFIG: Record<BotDifficulty, BotConfigEntry> = {
     },
     description: "Velg dette for helt tilfeldige trekk.",
     badge: "🥉",
+    badgeKind: "bronze",
+    difficulty: 1,
   },
   medium: {
     info: {
@@ -27,6 +36,8 @@ export const BOT_CONFIG: Record<BotDifficulty, BotConfigEntry> = {
     },
     description: "Tar brikker når det er mulig, ellers tilfeldig trekk.",
     badge: "🥈",
+    badgeKind: "silver",
+    difficulty: 2,
   },
   hard: {
     info: {
@@ -37,6 +48,8 @@ export const BOT_CONFIG: Record<BotDifficulty, BotConfigEntry> = {
     },
     description: "Prioriterer å ta eller true Thomas sine brikker.",
     badge: "🥇",
+    badgeKind: "gold",
+    difficulty: 3,
   },
   pro: {
     info: {
@@ -47,6 +60,8 @@ export const BOT_CONFIG: Record<BotDifficulty, BotConfigEntry> = {
     },
     description: "Tar eller truer de dyreste brikkene først.",
     badge: "🏆",
+    badgeKind: "trophy",
+    difficulty: 4,
   },
   super: {
     info: {
@@ -58,6 +73,8 @@ export const BOT_CONFIG: Record<BotDifficulty, BotConfigEntry> = {
     description:
       "Kjenner brikkeverdier og unngår trekk som taper mer enn de vinner.",
     badge: "💎",
+    badgeKind: "gem",
+    difficulty: 5,
   },
 };
 

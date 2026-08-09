@@ -1,13 +1,16 @@
+import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { useFocusEffect, useIsFocused } from "@react-navigation/native";
 import { useRouter } from "expo-router";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { SafeAreaView, StyleSheet, TouchableOpacity, View } from "react-native";
+import { type ComponentProps, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { ScrollView, StyleSheet, TouchableOpacity, View } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 import { GameOverModal } from "@/components/game-over-modal";
 import { BotSelectionModal } from "@/components/bot-selection-modal";
 import { ThemedText } from "@/components/themed-text";
 import { ChessBoard } from "@/components/chess/ChessBoard";
 import { PlayerInfo } from "@/components/chess/PlayerInfo";
+import { FontFamily, Palette, Radius } from "@/constants/theme";
 import { useGameHistory } from "@/hooks/use-game-history";
 
 import {
@@ -23,9 +26,23 @@ import {
   checkGameStatus,
 } from "@/lib/chess/game";
 import { makeBotMove, BotDifficulty } from "@/lib/chess/ai";
-import { BOT_CONFIG, BOT_ORDER } from "@/lib/chess/bots";
+import { BOT_CONFIG } from "@/lib/chess/bots";
 import { positionToKey, keyToPosition } from "@/lib/chess/utils";
 import { BOARD_SIZE } from "@/lib/chess/constants";
+
+type MciName = ComponentProps<typeof MaterialCommunityIcons>["name"];
+
+const SIM_OPTIONS: {
+  result: "win" | "draw" | "loss";
+  label: string;
+  icon: MciName;
+  color: string;
+  border: string;
+}[] = [
+  { result: "win", label: "Seier", icon: "trophy", color: Palette.win, border: "rgba(27, 146, 71, 0.4)" },
+  { result: "draw", label: "Uavgjort", icon: "handshake", color: Palette.mutedForeground, border: Palette.border },
+  { result: "loss", label: "Tap", icon: "heart-broken", color: Palette.loss, border: "rgba(222, 59, 61, 0.4)" },
+];
 
 // Player info - Thomas (player) is always at the bottom, opponent (bot) at the top
 const player: PlayerInfoType = {
@@ -65,20 +82,7 @@ export default function ChessBoardScreen() {
     () => BOT_CONFIG[opponentDifficulty].info,
     [opponentDifficulty]
   );
-
-  const botSelectionOptions = useMemo(
-    () =>
-      BOT_ORDER.map((difficulty) => {
-        const config = BOT_CONFIG[difficulty];
-        return {
-          difficulty,
-          title: config.info.name,
-          description: config.description,
-          badge: config.badge,
-        };
-      }),
-    []
-  );
+  const opponentBadgeKind = BOT_CONFIG[opponentDifficulty].badgeKind;
 
   const resetBoardState = useCallback(() => {
     setBoard(createInitialBoard());
@@ -353,116 +357,141 @@ export default function ChessBoardScreen() {
     gameResult !== null && !isBotSelectionVisible && isFocused;
 
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
-        <ThemedText type="title" style={styles.title}>
-          Sjakkbrett
-        </ThemedText>
-        <TouchableOpacity style={styles.newGameButton} onPress={handleNewGame}>
-          <ThemedText style={styles.newGameButtonText}>Nytt spill</ThemedText>
-        </TouchableOpacity>
-      </View>
-
-      <PlayerInfo player={opponent} />
-
-      <ChessBoard
-        board={board}
-        selectedSquare={selectedSquare}
-        legalMoves={legalMoves}
-        attackedSquares={attackedSquares}
-        onSquarePress={handleSquarePress}
-      />
-
-      <PlayerInfo player={player} />
-
-      {!isBotSelectionVisible && (
-        <View style={styles.testBar}>
-          <ThemedText style={styles.testBarLabel}>Simuler slutt:</ThemedText>
-          {(["win", "draw", "loss"] as const).map((outcome) => (
-            <TouchableOpacity
-              key={outcome}
-              style={styles.testButton}
-              onPress={() => setSimulatedResult(outcome)}
-            >
-              <ThemedText style={styles.testButtonText}>
-                {outcome === "win"
-                  ? "Seier"
-                  : outcome === "draw"
-                    ? "Uavgjort"
-                    : "Tap"}
-              </ThemedText>
-            </TouchableOpacity>
-          ))}
+    <SafeAreaView style={styles.safeArea} edges={["top", "left", "right"]}>
+      <ScrollView contentContainerStyle={styles.container}>
+        <View style={styles.header}>
+          <ThemedText type="title" style={styles.title}>
+            Sjakkbrett
+          </ThemedText>
+          <TouchableOpacity
+            style={styles.newGameButton}
+            onPress={handleNewGame}
+            activeOpacity={0.85}
+          >
+            <Ionicons name="refresh" size={20} color={Palette.primaryForeground} />
+            <ThemedText style={styles.newGameButtonText}>Nytt spill</ThemedText>
+          </TouchableOpacity>
         </View>
-      )}
+
+        <PlayerInfo player={opponent} badgeKind={opponentBadgeKind} />
+
+        <ChessBoard
+          board={board}
+          selectedSquare={selectedSquare}
+          legalMoves={legalMoves}
+          attackedSquares={attackedSquares}
+          onSquarePress={handleSquarePress}
+        />
+
+        <PlayerInfo player={player} />
+
+        {!isBotSelectionVisible && (
+          <View style={styles.simSection}>
+            <ThemedText style={styles.simLabel}>Simuler slutt</ThemedText>
+            <View style={styles.simGrid}>
+              {SIM_OPTIONS.map(({ result, label, icon, color, border }) => (
+                <TouchableOpacity
+                  key={result}
+                  style={[styles.simButton, { borderColor: border }]}
+                  onPress={() => setSimulatedResult(result)}
+                  activeOpacity={0.85}
+                >
+                  <MaterialCommunityIcons name={icon} size={24} color={color} />
+                  <ThemedText style={[styles.simButtonText, { color }]}>
+                    {label}
+                  </ThemedText>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+        )}
+      </ScrollView>
 
       <GameOverModal
         visible={showGameOver}
         result={gameResult || "draw"}
         onNewGame={handleNewGame}
         onGoHome={handleGoHome}
-        opponentDifficulty={opponentDifficulty}
       />
       <BotSelectionModal
         visible={isBotSelectionVisible && isFocused}
-        options={botSelectionOptions}
         onSelect={startGameWithDifficulty}
+        onClose={() => setIsBotSelectionVisible(false)}
       />
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  safeArea: {
     flex: 1,
-    backgroundColor: "#fff",
-    alignItems: "center",
-    paddingTop: 60,
+    backgroundColor: Palette.background,
+  },
+  container: {
     paddingHorizontal: 20,
+    paddingTop: 8,
+    paddingBottom: 16,
+    gap: 16,
   },
   header: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    width: "100%",
-    maxWidth: 500,
-    marginBottom: 20,
+    gap: 12,
   },
   title: {
-    fontSize: 28,
+    fontSize: 36,
+    lineHeight: 42,
+    color: Palette.text,
   },
   newGameButton: {
-    backgroundColor: "#4CAF50",
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 6,
-  },
-  newGameButtonText: {
-    color: "#fff",
-    fontSize: 16,
-    fontWeight: "bold",
-  },
-  testBar: {
     flexDirection: "row",
     alignItems: "center",
-    flexWrap: "wrap",
-    justifyContent: "center",
     gap: 8,
-    marginTop: 16,
+    minHeight: 48,
+    paddingHorizontal: 16,
+    borderRadius: Radius["2xl"],
+    backgroundColor: Palette.primary,
+    shadowColor: "#000",
+    shadowOpacity: 0.12,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 4,
   },
-  testBarLabel: {
-    fontSize: 12,
-    opacity: 0.5,
+  newGameButtonText: {
+    fontFamily: FontFamily.bodyExtra,
+    fontSize: 16,
+    color: Palette.primaryForeground,
   },
-  testButton: {
-    borderWidth: 1,
-    borderColor: "rgba(0, 0, 0, 0.2)",
-    borderRadius: 6,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
+  simSection: {
+    gap: 8,
   },
-  testButtonText: {
-    fontSize: 12,
-    opacity: 0.7,
+  simLabel: {
+    fontFamily: FontFamily.bodyBold,
+    fontSize: 14,
+    color: Palette.mutedForeground,
+  },
+  simGrid: {
+    flexDirection: "row",
+    gap: 8,
+  },
+  simButton: {
+    flex: 1,
+    minHeight: 64,
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 4,
+    borderRadius: Radius["2xl"],
+    borderWidth: 2,
+    backgroundColor: Palette.card,
+    shadowColor: "#000",
+    shadowOpacity: 0.06,
+    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 1 },
+    elevation: 2,
+  },
+  simButtonText: {
+    fontFamily: FontFamily.bodyExtra,
+    fontSize: 15,
   },
 });

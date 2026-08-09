@@ -60,8 +60,10 @@ const styles = StyleSheet.create({
     width: "100%",
     aspectRatio: 1,
     maxWidth: 500,
-    borderWidth: 2,
-    borderColor: "#333",
+    borderWidth: 4,
+    borderColor: "rgba(66, 160, 86, 0.7)",
+    borderRadius: 16,
+    overflow: "hidden",
   },
   row: {
     flex: 1,
