@@ -1,3 +1,5 @@
+import { useFocusEffect, useIsFocused } from "@react-navigation/native";
+import { useRouter } from "expo-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { SafeAreaView, StyleSheet, TouchableOpacity, View } from "react-native";
 
@@ -44,10 +46,20 @@ export default function ChessBoardScreen() {
   const [opponentDifficulty, setOpponentDifficulty] =
     useState<BotDifficulty>("easy");
   const [isBotSelectionVisible, setIsBotSelectionVisible] = useState(true);
+  // For manual testing: forces the game-over screen without playing a real game.
+  const [simulatedResult, setSimulatedResult] = useState<
+    "win" | "loss" | "draw" | null
+  >(null);
 
+  const router = useRouter();
+  const isFocused = useIsFocused();
   const { addGame } = useGameHistory();
   const gameInstanceIdRef = useRef(0);
   const recordedGameRef = useRef<number | null>(null);
+  // True while a bot has been picked and the player is in a game (or its
+  // game-over screen). Lets us reopen bot selection on focus only when there is
+  // no game to return to.
+  const gameActiveRef = useRef(false);
 
   const opponent = useMemo(
     () => BOT_CONFIG[opponentDifficulty].info,
@@ -84,9 +96,22 @@ export default function ChessBoardScreen() {
     (difficulty: BotDifficulty) => {
       setOpponentDifficulty(difficulty);
       resetBoardState();
+      setSimulatedResult(null);
+      gameActiveRef.current = true;
       setIsBotSelectionVisible(false);
     },
     [resetBoardState]
+  );
+
+  // Reopen bot selection when returning to the board with no game in progress
+  // (e.g. after pressing "Hjem"). Deferring to focus avoids the picker flashing
+  // over the home screen during the tab transition.
+  useFocusEffect(
+    useCallback(() => {
+      if (!gameActiveRef.current) {
+        setIsBotSelectionVisible(true);
+      }
+    }, [])
   );
 
   // Bot makes a move
@@ -189,8 +214,20 @@ export default function ChessBoardScreen() {
 
   const handleNewGame = useCallback(() => {
     resetBoardState();
+    setSimulatedResult(null);
+    gameActiveRef.current = false;
     setIsBotSelectionVisible(true);
   }, [resetBoardState]);
+
+  const handleGoHome = useCallback(() => {
+    resetBoardState();
+    setSimulatedResult(null);
+    gameActiveRef.current = false;
+    // Keep the picker hidden during the transition; the focus effect reopens it
+    // when the player returns to the board.
+    setIsBotSelectionVisible(false);
+    router.navigate("/");
+  }, [resetBoardState, router]);
 
   const handleSquarePress = (row: number, col: number) => {
     if (isBotSelectionVisible) return;
@@ -311,8 +348,9 @@ export default function ChessBoardScreen() {
     }
   };
 
-  const gameResult = getGameResult();
-  const showGameOver = gameResult !== null && !isBotSelectionVisible;
+  const gameResult = simulatedResult ?? getGameResult();
+  const showGameOver =
+    gameResult !== null && !isBotSelectionVisible && isFocused;
 
   return (
     <SafeAreaView style={styles.container}>
@@ -337,14 +375,36 @@ export default function ChessBoardScreen() {
 
       <PlayerInfo player={player} />
 
+      {!isBotSelectionVisible && (
+        <View style={styles.testBar}>
+          <ThemedText style={styles.testBarLabel}>Simuler slutt:</ThemedText>
+          {(["win", "draw", "loss"] as const).map((outcome) => (
+            <TouchableOpacity
+              key={outcome}
+              style={styles.testButton}
+              onPress={() => setSimulatedResult(outcome)}
+            >
+              <ThemedText style={styles.testButtonText}>
+                {outcome === "win"
+                  ? "Seier"
+                  : outcome === "draw"
+                    ? "Uavgjort"
+                    : "Tap"}
+              </ThemedText>
+            </TouchableOpacity>
+          ))}
+        </View>
+      )}
+
       <GameOverModal
         visible={showGameOver}
         result={gameResult || "draw"}
         onNewGame={handleNewGame}
+        onGoHome={handleGoHome}
         opponentDifficulty={opponentDifficulty}
       />
       <BotSelectionModal
-        visible={isBotSelectionVisible}
+        visible={isBotSelectionVisible && isFocused}
         options={botSelectionOptions}
         onSelect={startGameWithDifficulty}
       />
@@ -381,5 +441,28 @@ const styles = StyleSheet.create({
     color: "#fff",
     fontSize: 16,
     fontWeight: "bold",
+  },
+  testBar: {
+    flexDirection: "row",
+    alignItems: "center",
+    flexWrap: "wrap",
+    justifyContent: "center",
+    gap: 8,
+    marginTop: 16,
+  },
+  testBarLabel: {
+    fontSize: 12,
+    opacity: 0.5,
+  },
+  testButton: {
+    borderWidth: 1,
+    borderColor: "rgba(0, 0, 0, 0.2)",
+    borderRadius: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+  },
+  testButtonText: {
+    fontSize: 12,
+    opacity: 0.7,
   },
 });
