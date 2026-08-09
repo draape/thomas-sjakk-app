@@ -30,6 +30,13 @@ export default function TabLayout() {
           tabBarIcon: ({ color }) => <Text style={{ color, fontSize: 28 }}>♟️</Text>,
         }}
       />
+      <Tabs.Screen
+        name="rules"
+        options={{
+          title: 'Hvordan spille',
+          tabBarIcon: ({ color }) => <Text style={{ color, fontSize: 28 }}>📖</Text>,
+        }}
+      />
     </Tabs>
   );
 }
